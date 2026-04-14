@@ -1,0 +1,36 @@
+{
+  "name": "klicus",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 4000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/ios": "^8.3.0",
+    "@supabase/auth-helpers-nextjs": "latest",
+    "@supabase/supabase-js": "latest",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
+    "formidable": "^3.5.4",
+    "framer-motion": "latest",
+    "lucide-react": "latest",
+    "mercadopago": "^2.12.0",
+    "mysql2": "^3.22.0",
+    "next": "latest",
+    "next-auth": "^4.24.13",
+    "react": "latest",
+    "react-dom": "latest",
+    "recharts": "latest",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "eslint": "latest",
+    "eslint-config-next": "latest"
+  }
+}

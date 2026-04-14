@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+/dist
+/build
+
+# Next.js
+.next/
+out/
+
+# Environment Variables
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Project Backups (As requested)
+backups/
+klicus_db_backup.sql
+
+# Desktop / OS
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
