@@ -1,34 +1,24 @@
+'use client';
+
 /**
  * KLICUS Category Filter
  * Renders a horizontal scrollable list of categories for ad filtering.
  */
 
-'use client';
+import { cn } from '@/lib/utils';
 
 export default function CategoryFilter({ categories, activeCategory, onCategoryChange }) {
   return (
-    <div className="category-container" style={{
-      marginBottom: '2rem',
-      display: 'flex',
-      gap: '0.75rem',
-      overflowX: 'auto',
-      paddingBottom: '1rem',
-      scrollbarWidth: 'none',
-      msOverflowStyle: 'none'
-    }}>
+    <div className="flex gap-3 overflow-x-auto pb-4 mb-8 scrollbar-hide no-scrollbar select-none">
       {/* "All" category trigger */}
       <button 
         onClick={() => onCategoryChange('all')}
-        style={{
-          whiteSpace: 'nowrap',
-          padding: '0.6rem 1.25rem',
-          borderRadius: 'var(--radius-full)',
-          background: activeCategory === 'all' ? 'var(--primary)' : 'var(--card)',
-          color: activeCategory === 'all' ? 'var(--primary-foreground)' : 'var(--foreground)',
-          border: '1px solid var(--border)',
-          fontWeight: '600',
-          transition: 'all var(--duration-fast)'
-        }}
+        className={cn(
+          "whitespace-nowrap px-6 py-2 rounded-full border border-border font-bold transition-all duration-300",
+          activeCategory === 'all' 
+            ? "bg-primary text-primary-foreground border-primary shadow-md scale-105" 
+            : "bg-card text-foreground hover:bg-muted"
+        )}
       >
         Todas
       </button>
@@ -38,24 +28,24 @@ export default function CategoryFilter({ categories, activeCategory, onCategoryC
         <button 
           key={cat.id}
           onClick={() => onCategoryChange(cat.slug)}
-          style={{
-            whiteSpace: 'nowrap',
-            padding: '0.6rem 1.25rem',
-            borderRadius: 'var(--radius-full)',
-            background: activeCategory === cat.slug ? 'var(--primary)' : 'var(--card)',
-            color: activeCategory === cat.slug ? 'var(--primary-foreground)' : 'var(--foreground)',
-            border: '1px solid var(--border)',
-            fontWeight: '600',
-            transition: 'all var(--duration-fast)'
-          }}
+          className={cn(
+            "whitespace-nowrap px-6 py-2 rounded-full border border-border font-bold transition-all duration-300",
+            activeCategory === cat.slug 
+              ? "bg-primary text-primary-foreground border-primary shadow-md scale-105" 
+              : "bg-card text-foreground hover:bg-muted"
+          )}
         >
           {cat.name}
         </button>
       ))}
 
-      <style jsx>{`
-        .category-container::-webkit-scrollbar {
+      <style jsx global>{`
+        .no-scrollbar::-webkit-scrollbar {
           display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}</style>
     </div>

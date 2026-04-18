@@ -13,7 +13,7 @@ out/
 .env.production
 .env.*.local
 
-# Project Backups (As requested)
+config/*.json
 backups/
 klicus_db_backup.sql
 

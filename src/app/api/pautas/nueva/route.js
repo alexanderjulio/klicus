@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { processAdImage } from '@/lib/image-service';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import crypto from 'crypto';
 
 /**
@@ -24,16 +24,47 @@ export async function POST(req) {
     const title = formData.get('title');
     const description = formData.get('description');
     const categoryId = formData.get('categoryId');
-    const priority = formData.get('priority') || 'basic';
+    const requestedPriority = formData.get('priority') || 'basic';
     const location = formData.get('location');
-    const priceRange = formData.get('priceRange');
+    const address = formData.get('address');
+    const businessHours = formData.get('businessHours');
+    const phone = formData.get('phone');
+    const cellphone = formData.get('cellphone');
+    const email = formData.get('email');
+    const websiteUrl = formData.get('websiteUrl');
+    const facebookUrl = formData.get('facebookUrl');
+    const instagramUrl = formData.get('instagramUrl');
+    const deliveryInfo = formData.get('deliveryInfo');
+    const priceRange = formData.get('priceRange') || '';
+    const isOffer = formData.get('isOffer') === 'true';
     const files = formData.getAll('images'); // Multiple image files
+
+    // 2.5 Dynamic Validation: Use the requested priority limits
+    // Limits mapping derived from plans.js
+    const LIMITS = {
+      basic: 1,
+      pro: 3,
+      diamond: 5
+    };
+    const maxAllowedImages = LIMITS[requestedPriority] || 1;
+
+    if (files.length > maxAllowedImages) {
+      return NextResponse.json({ 
+        error: `El plan ${requestedPriority.toUpperCase()} solo permite ${maxAllowedImages} foto(s). Has enviado ${files.length}.` 
+      }, { status: 400 });
+    }
+
+    // 2.6 Dynamic Expiration Logic from DB
+    const planData = await query('SELECT duration_days FROM plans WHERE plan_name = ?', [requestedPriority]);
+    const durationDays = planData[0]?.duration_days || 30; // Fallback to 30
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + durationDays);
 
     const imageUrls = [];
 
     // 3. Image Processing (Sharp + WebP)
-    // Process up to 5 images sequentially to optimize performance and battery on local servers
-    for (const file of files.slice(0, 5)) {
+    for (const file of files.slice(0, maxAllowedImages)) {
       if (file.size > 0) {
         const buffer = Buffer.from(await file.arrayBuffer());
         const url = await processAdImage(buffer, file.name);
@@ -41,13 +72,18 @@ export async function POST(req) {
       }
     }
 
+
     const adId = crypto.randomUUID();
 
     // 4. MySQL Persistence
-    // Initial status is 'pending' -> Requires admin approval
     await query(`
-      INSERT INTO advertisements (id, owner_id, category_id, title, description, image_urls, priority_level, status, location, price_range)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO advertisements (
+        id, owner_id, category_id, title, description, image_urls, priority_level, 
+        status, location, address, business_hours, phone, cellphone, email, 
+        website_url, facebook_url, instagram_url, delivery_info, price_range, is_offer,
+        expires_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       adId, 
       session.user.id, 
@@ -55,11 +91,23 @@ export async function POST(req) {
       title, 
       description, 
       JSON.stringify(imageUrls), 
-      priority, 
+      requestedPriority, // Correctly save the requested priority!
       'pending', 
-      location, 
-      priceRange
+      location,
+      address,
+      businessHours,
+      phone,
+      cellphone,
+      email,
+      websiteUrl,
+      facebookUrl,
+      instagramUrl,
+      deliveryInfo,
+      priceRange,
+      isOffer,
+      expiresAt
     ]);
+
 
     return NextResponse.json({ 
       success: true, 

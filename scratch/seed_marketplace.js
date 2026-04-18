@@ -1,98 +1,117 @@
-const { query } = require('../src/lib/db');
-const crypto = require('crypto');
+const mysql = require('mysql2/promise');
 
-async function seed() {
-  console.log('🚀 Iniciando generación masiva de datos de prueba...');
+async function seedMarketplace() {
+  const connection = await mysql.createConnection({
+    host: '127.0.0.1',
+    user: 'root',
+    password: '',
+    database: 'klicus_db'
+  });
+
+  const adsData = [
+    {
+      title: 'Limpieza Dental Profunda',
+      address: 'Calle 82 # 11-75, El Retiro',
+      business_hours: 'Lunes a Sábado: 8:00 AM - 7:00 PM',
+      phone: '601 345 6789',
+      cellphone: '+573102345678',
+      email: 'contacto@dentalklicus.com',
+      website_url: 'https://dentalklicus.com',
+      facebook_url: 'https://facebook.com/dentalklicus',
+      instagram_url: 'https://instagram.com/dentalklicus',
+      delivery_info: 'no',
+      price_range: '$120.000 - $250.000'
+    },
+    {
+      title: 'Diseño de Interiores Jardines',
+      address: 'Carrera 7 # 72-41, Bogotá',
+      business_hours: 'Lunes a Viernes: 9:00 AM - 6:00 PM',
+      phone: '601 876 5432',
+      cellphone: '+573214567890',
+      email: 'info@jardinespremium.com',
+      website_url: 'https://jardinespremium.com',
+      facebook_url: 'https://facebook.com/jardinespremium',
+      instagram_url: 'https://instagram.com/jardinespremium',
+      delivery_info: 'si',
+      price_range: 'Cotización previa'
+    },
+    {
+      title: 'Personal Trainer 24/7',
+      address: 'Gimnasio BodyTech, Chicó',
+      business_hours: '24 Horas / 7 Días',
+      phone: 'N/A',
+      cellphone: '+573009876543',
+      email: 'coach@fitnessklicus.com',
+      website_url: 'https://fitnessklicus.com',
+      facebook_url: 'https://facebook.com/coachfitness',
+      instagram_url: 'https://instagram.com/coachfitness',
+      delivery_info: 'si',
+      price_range: '$80.000 / sesión'
+    },
+    {
+      title: 'Implantes Dentales 2x1',
+      address: 'Av. Cra 15 # 103-22',
+      business_hours: 'Lunes a Sábado: 7:00 AM - 8:00 PM',
+      phone: '601 222 3344',
+      cellphone: '+573156667788',
+      email: 'implantes@clinicapremium.com',
+      website_url: 'https://clinicapremium.com',
+      facebook_url: 'https://facebook.com/clinicapremium',
+      instagram_url: 'https://instagram.com/clinicapremium',
+      delivery_info: 'no',
+      price_range: '$1.200.000'
+    },
+    {
+      title: 'Sushi All You Can Eat',
+      address: 'Calle 93 # 12-54, Bogotá',
+      business_hours: 'Todos los días: 12:00 PM - 10:00 PM',
+      phone: '601 999 0000',
+      cellphone: '+573112223333',
+      email: 'reservas@sushiklicus.com',
+      website_url: 'https://sushiklicus.com',
+      facebook_url: 'https://facebook.com/sushiklicus',
+      instagram_url: 'https://instagram.com/sushiklicus',
+      delivery_info: 'si',
+      price_range: '$65.000 p/p'
+    }
+  ];
 
   try {
-    // 1. Limpiar datos previos para evitar duplicados
-    await query('DELETE FROM billings');
-    await query('DELETE FROM metrics');
-    await query('DELETE FROM advertisements');
-    await query('DELETE FROM categories');
-    await query('DELETE FROM profiles');
-
-    // 2. Crear Perfiles (Propietarios)
-    const owners = [
-      { id: crypto.randomUUID(), name: 'Carlos Ruiz', biz: 'Dental Shine Bucaramanga', bio: 'Dentista con 15 años de experiencia en estética dental.', role: 'professional' },
-      { id: crypto.randomUUID(), name: 'Elena Gómez', biz: 'Gourmet Mediterráneo', bio: 'Cocina de autor en el corazón de la ciudad.', role: 'business' },
-      { id: crypto.randomUUID(), name: 'Andrés López', biz: 'TechFix Solutions', bio: 'Reparación express de móviles y portátiles.', role: 'business' },
-      { id: crypto.randomUUID(), name: 'Dra. María Paula', biz: 'Clínica Veterinaria El Recreo', bio: 'Cuidamos a tus peludos como si fueran nuestros.', role: 'business' },
-      { id: crypto.randomUUID(), name: 'Julián Montoya', biz: 'Montoya Abogados', bio: 'Especialistas en derecho laboral y civil.', role: 'professional' },
-      { id: crypto.randomUUID(), name: 'Sofía Castro', biz: 'Fitness Core Gym', bio: 'Entrenamiento funcional y nutrición deportiva.', role: 'business' }
-    ];
-
-    for (const owner of owners) {
-      await query(`
-        INSERT INTO profiles (id, full_name, business_name, bio, role) 
-        VALUES (?, ?, ?, ?, ?)
-      `, [owner.id, owner.name, owner.biz, owner.bio, owner.role]);
-    }
-
-    // 3. Crear Categorías
-    const categoriesSet = [
-      ['Salud y Bienestar', 'salud', 'Heart'],
-      ['Gastronomía', 'gastronomia', 'Utensils'],
-      ['Tecnología', 'tecnologia', 'Cpu'],
-      ['Servicios Legales', 'legales', 'Scale'],
-      ['Deportes', 'deportes', 'Dumbbell'],
-      ['Hogar', 'hogar', 'Home'],
-      ['Mascotas', 'mascotas', 'Dog'],
-      ['Moda', 'moda', 'ShoppingBag']
-    ];
-
-    const categoryMap = {};
-    for (const [name, slug, icon] of categoriesSet) {
-      const result = await query('INSERT INTO categories (name, slug, icon) VALUES (?, ?, ?)', [name, slug, icon]);
-      categoryMap[slug] = result.insertId;
-    }
-
-    // 4. Crear 20+ Anuncios (Pautas) de forma aleatoria
-    const adsData = [
-      { title: 'Implantes Dentales 2x1', desc: 'Gran promoción este mes en implantes de alta calidad.', cat: 'salud', priority: 'diamond', price: '$1.2M', loc: 'Bucaramanga, Santander' },
-      { title: 'Menú Ejecutivo Gourmet', desc: 'Almuerzos saludables con los mejores ingredientes.', cat: 'gastronomia', priority: 'pro', price: '$25.000', loc: 'Bucaramanga, Cabecera' },
-      { title: 'Reparación iPhone Pantalla', desc: 'Cambiamos tu pantalla en 30 minutos con garantía.', cat: 'tecnologia', priority: 'pro', price: 'Desde $150k', loc: 'Bogotá, CC Andino' },
-      { title: 'Asesoría Divorcios', desc: 'Trámites rápidos y discretos. Consulta inicial gratuita.', cat: 'legales', priority: 'diamond', price: 'Consultar', loc: 'Cali, Valle' },
-      { title: 'Personal Trainer 24/7', desc: 'Logra tus objetivos con rutinas personalizadas.', cat: 'deportes', priority: 'basic', price: '$80k/mes', loc: 'Medellín, Poblado' },
-      { title: 'Control Plagas Hogar', desc: 'Eliminamos cucarachas y hormigas con productos certificados.', cat: 'hogar', priority: 'pro', price: 'Desde $120k', loc: 'Barranquilla' },
-      { title: 'Peluquería Canina VIP', desc: 'Baño, corte y spa para tu mejor amigo.', cat: 'mascotas', priority: 'pro', price: '$45.000', loc: 'Bucaramanga, El Recreo' },
-      { title: 'Moda Sostenible Artística', desc: 'Ropa única hecha a mano con materiales reciclados.', cat: 'moda', priority: 'basic', price: '$90k - $200k', loc: 'Medellín' },
-      { title: 'Limpieza Dental Profunda', desc: 'Ultrasonido y profilaxis para una sonrisa perfecta.', cat: 'salud', priority: 'basic', price: '$80.000', loc: 'Bucaramanga' },
-      { title: 'Sushi All You Can Eat', desc: 'Los jueves come todo el sushi que quieras por un precio fijo.', cat: 'gastronomia', priority: 'diamond', price: '$65.000', loc: 'Bogotá' },
-      { title: 'Marketing Digital Pymes', desc: 'Hacemos crecer tus redes sociales con pauta efectiva.', cat: 'tecnologia', priority: 'pro', price: 'Desde $500k', loc: 'Remoto' },
-      { title: 'Yoga para Embarazadas', desc: 'Conecta con tu bebé en un ambiente de paz.', cat: 'salud', priority: 'pro', price: '$30k/clase', loc: 'Cali' },
-      { title: 'Diseño de Interiores Jardines', desc: 'Transformamos tu patio en un oasis natural.', cat: 'hogar', priority: 'diamond', price: 'Previa cotización', loc: 'Cartagena' },
-      { title: 'Abogado Notarial Express', desc: 'Firmas y autenticaciones en tiempo récord.', cat: 'legales', priority: 'basic', price: 'Consultar', loc: 'Pereira' },
-      { title: 'Curso de Natación Niños', desc: 'Clases personalizadas para perder el miedo al agua.', cat: 'deportes', priority: 'pro', price: '$150k/mes', loc: 'Manizales' }
-    ];
-
     for (const ad of adsData) {
-      const randomOwner = owners[Math.floor(Math.random() * owners.length)];
-      await query(`
-        INSERT INTO advertisements (id, owner_id, category_id, title, description, priority_level, status, location, price_range)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      await connection.execute(`
+        UPDATE advertisements 
+        SET 
+          address = ?,
+          business_hours = ?,
+          phone = ?,
+          cellphone = ?,
+          email = ?,
+          website_url = ?,
+          facebook_url = ?,
+          instagram_url = ?,
+          delivery_info = ?,
+          price_range = ?
+        WHERE title = ?
       `, [
-        crypto.randomUUID(), 
-        randomOwner.id, 
-        categoryMap[ad.cat], 
-        ad.title, 
-        ad.desc, 
-        ad.priority, 
-        'active', 
-        ad.loc, 
-        ad.price
+        ad.address,
+        ad.business_hours,
+        ad.phone,
+        ad.cellphone,
+        ad.email,
+        ad.website_url,
+        ad.facebook_url,
+        ad.instagram_url,
+        ad.delivery_info,
+        ad.price_range,
+        ad.title
       ]);
     }
-
-    console.log('✅ Seeding masivo completado.');
-    console.log(`- Categorías creadas: ${categoriesSet.length}`);
-    console.log(`- Perfiles creados: ${owners.length}`);
-    console.log(`- Anuncios creados: ${adsData.length}`);
+    console.log('Seed Marketplace completed successfully');
   } catch (err) {
-    console.error('❌ Error durante el seeding masivo:', err);
+    console.error(err);
   } finally {
-    process.exit();
+    await connection.end();
   }
 }
 
-seed();
+seedMarketplace();

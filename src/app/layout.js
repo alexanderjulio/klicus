@@ -5,8 +5,12 @@
  */
 
 import { Inter, Outfit } from "next/font/google";
-import "@/styles/design-tokens.css";
+import { ToastProvider } from '@/context/ToastContext';
+import { LocationProvider } from '@/context/LocationContext';
 import "@/styles/globals.css";
+import Navigation from "@/components/Navigation";
+import BottomNav from "@/components/BottomNav";
+import { Providers } from "@/components/Providers";
 
 // Google Fonts for a premium aesthetic
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -17,8 +21,19 @@ export const metadata = {
   title: "KLICUS | Marketplace Publicitario Premium",
   description: "La plataforma líder para conectar profesionales y comercios con su audiencia local.",
   manifest: "/manifest.json",
-  themeColor: "#2563eb",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/favicon.png",
+  },
+};
+
+/** @type {import('next').Viewport} */
+export const viewport = {
+  themeColor: "#E2E000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }) {
@@ -26,12 +41,19 @@ export default function RootLayout({ children }) {
     <html lang="es">
       <head>
         {/* PWA & Mobile Meta Tags */}
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body className={`${inter.variable} ${outfit.variable}`}>
-        {children}
+      <body className={`${inter.variable} ${outfit.variable} pb-16 md:pb-0 font-sans`}>
+        <Providers>
+          <LocationProvider>
+            <ToastProvider>
+              <Navigation />
+              {children}
+              <BottomNav />
+            </ToastProvider>
+          </LocationProvider>
+        </Providers>
       </body>
     </html>
   );

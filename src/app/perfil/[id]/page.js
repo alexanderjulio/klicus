@@ -14,7 +14,8 @@ import { notFound } from 'next/navigation';
  * Generates dynamic SEO metadata for each professional profile.
  */
 export async function generateMetadata({ params }) {
-  const profiles = await query('SELECT business_name, full_name FROM profiles WHERE id = ?', [params.id]);
+  const { id } = await params;
+  const profiles = await query('SELECT business_name, full_name FROM profiles WHERE id = ?', [id]);
   const profile = profiles[0];
   
   if (!profile) return { title: 'Perfil no encontrado' };
@@ -26,11 +27,13 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function ProfilePage({ params }) {
+  const { id } = await params;
+  
   /**
    * Data Fetching (Server Side)
    */
   // 1. Fetch main profile identity
-  const profiles = await query('SELECT * FROM profiles WHERE id = ?', [params.id]);
+  const profiles = await query('SELECT * FROM profiles WHERE id = ?', [id]);
   const profile = profiles[0];
 
   if (!profile) {
@@ -43,7 +46,7 @@ export default async function ProfilePage({ params }) {
     FROM advertisements a
     LEFT JOIN categories c ON a.category_id = c.id
     WHERE a.owner_id = ? AND a.status = 'active'
-  `, [params.id]);
+  `, [id]);
 
   return (
     <>

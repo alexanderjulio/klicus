@@ -2,6 +2,7 @@
   "name": "klicus",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev -p 4000",
     "build": "next build",
@@ -15,10 +16,14 @@
     "@capacitor/ios": "^8.3.0",
     "@supabase/auth-helpers-nextjs": "latest",
     "@supabase/supabase-js": "latest",
+    "@tailwindcss/postcss": "^4.2.2",
     "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
     "formidable": "^3.5.4",
     "framer-motion": "latest",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
     "lucide-react": "latest",
     "mercadopago": "^2.12.0",
     "mysql2": "^3.22.0",
@@ -27,10 +32,14 @@
     "react": "latest",
     "react-dom": "latest",
     "recharts": "latest",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.0.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "eslint": "latest",
-    "eslint-config-next": "latest"
+    "eslint-config-next": "latest",
+    "firebase-admin": "^13.8.0"
   }
 }
