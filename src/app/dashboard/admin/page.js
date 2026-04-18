@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Settings, LogOut, Bell,
   Search, Filter, Shield, MoreHorizontal, Mail, PlusSquare,
   Plus, Trash2, Edit3, Palette, ShieldCheck, PlusCircle,
-  QrCode, MessageCircle, BarChart3, ExternalLink
+  QrCode, MessageCircle, BarChart3, ExternalLink, Send
 } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -59,6 +59,8 @@ export default function AdminDashboard() {
     message: '', 
     onConfirm: null 
   });
+  const [broadcastData, setBroadcastData] = useState({ title: '', message: '', image: '' });
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -481,6 +483,7 @@ export default function AdminDashboard() {
              <button onClick={() => setActiveTab('overview')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest", activeTab === 'overview' ? "bg-white dark:bg-zinc-800 text-secondary dark:text-white shadow-sm" : "text-muted-foreground hover:text-secondary dark:hover:text-white")}>General</button>
              <button onClick={() => setActiveTab('pautas')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest", activeTab === 'pautas' ? "bg-white dark:bg-zinc-800 text-secondary dark:text-white shadow-sm" : "text-muted-foreground hover:text-secondary dark:hover:text-white")}>Pautas</button>
              <button onClick={() => setActiveTab('metrics')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest", activeTab === 'metrics' ? "bg-white dark:bg-zinc-800 text-secondary dark:text-white shadow-sm" : "text-muted-foreground hover:text-secondary dark:hover:text-white")}>Métricas</button>
+             <button onClick={() => setActiveTab('mensajeria')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest", activeTab === 'mensajeria' ? "bg-white dark:bg-zinc-800 text-secondary dark:text-white shadow-sm" : "text-muted-foreground hover:text-secondary dark:hover:text-white")}>Mensajería</button>
              <button onClick={() => setActiveTab('usuarios')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest", activeTab === 'usuarios' || activeTab === 'roles' ? "bg-white dark:bg-zinc-800 text-secondary dark:text-white shadow-sm" : "text-muted-foreground hover:text-secondary dark:hover:text-white")}>Usuarios</button>
              <button onClick={() => setActiveTab('config')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest", activeTab === 'config' ? "bg-white dark:bg-zinc-800 text-secondary dark:text-white shadow-sm" : "text-muted-foreground hover:text-secondary dark:hover:text-white")}>Ajustes</button>
              <button onClick={() => setActiveTab('perfil')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest", activeTab === 'perfil' ? "bg-white dark:bg-zinc-800 text-secondary dark:text-white shadow-sm" : "text-muted-foreground hover:text-secondary dark:hover:text-white")}>Yo</button>
@@ -690,6 +693,99 @@ export default function AdminDashboard() {
                    </button>
                 </div>
                 <AdminChart data={data?.chartData || []} />
+             </div>
+          </motion.div>
+        )}
+        
+        {activeTab === 'mensajeria' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto">
+             <div className="bg-white dark:bg-zinc-900 rounded-[3.5rem] p-12 border border-border/50 dark:border-white/5 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                
+                <div className="mb-12">
+                   <h2 className="text-3xl font-black text-secondary dark:text-white italic tracking-tighter flex items-center gap-4"><Bell size={32} className="text-primary" /> Mensajería Global Push</h2>
+                   <p className="text-muted-foreground font-medium mt-2">Envía notificaciones instantáneas a todos los usuarios que tengan instalada la App.</p>
+                </div>
+
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setIsBroadcasting(true);
+                    try {
+                      const res = await fetch('/api/admin/broadcast', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(broadcastData)
+                      });
+                      const json = await res.json();
+                      if (json.success) {
+                        showToast('📢 Notificación enviada correctamente', 'success');
+                        setBroadcastData({ title: '', message: '', image: '' });
+                      } else {
+                        showToast(json.error || 'Error al enviar broadcast', 'error');
+                      }
+                    } catch (error) {
+                      showToast('Error de conexión', 'error');
+                    } finally {
+                      setIsBroadcasting(false);
+                    }
+                  }}
+                  className="space-y-8"
+                >
+                   <div className="group">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary/30 ml-2 mb-3 block group-focus-within:text-primary transition-colors">Título de la Notificación</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={broadcastData.title}
+                        onChange={(e) => setBroadcastData({...broadcastData, title: e.target.value})}
+                        placeholder="Ej: ¡Gran Bazar KLICUS Mañana!"
+                        className="w-full h-14 px-6 rounded-xl bg-muted/20 dark:bg-white/5 border border-transparent focus:border-primary/40 outline-none font-bold text-secondary dark:text-white"
+                      />
+                   </div>
+
+                   <div className="group">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary/30 ml-2 mb-3 block group-focus-within:text-primary transition-colors">Mensaje (Cuerpo)</label>
+                      <textarea 
+                        required
+                        rows={4}
+                        value={broadcastData.message}
+                        onChange={(e) => setBroadcastData({...broadcastData, message: e.target.value})}
+                        placeholder="Escribe aquí el contenido que verán los usuarios..."
+                        className="w-full p-6 rounded-xl bg-muted/20 dark:bg-white/5 border border-transparent focus:border-primary/40 outline-none font-bold text-secondary dark:text-white resize-none"
+                      />
+                   </div>
+
+                   <div className="group">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary/30 ml-2 mb-3 block group-focus-within:text-primary transition-colors">Media URL (Opcional)</label>
+                      <input 
+                        type="text" 
+                        value={broadcastData.image}
+                        onChange={(e) => setBroadcastData({...broadcastData, image: e.target.value})}
+                        placeholder="https://tudominio.com/imagen.jpg"
+                        className="w-full h-14 px-6 rounded-xl bg-muted/20 dark:bg-white/5 border border-transparent focus:border-primary/40 outline-none font-bold text-secondary dark:text-white"
+                      />
+                   </div>
+
+                   <div className="pt-4">
+                      <button 
+                        type="submit"
+                        disabled={isBroadcasting}
+                        className={cn(
+                          "w-full h-16 bg-secondary text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-4 hover:bg-primary hover:text-secondary transition-all shadow-2xl shadow-secondary/20 active:scale-95",
+                          isBroadcasting && "opacity-50 animate-pulse"
+                        )}
+                      >
+                        {isBroadcasting ? 'Transmitiendo...' : <><Send size={18} /> Lanzar Notificación Global</>}
+                      </button>
+                   </div>
+                </form>
+
+                <div className="mt-12 p-6 bg-primary/5 rounded-2xl border border-primary/10">
+                   <p className="text-[10px] font-bold text-primary flex items-center gap-2 italic">
+                      <Bell size={12} /> Nota: Esta mensaje llegará a todos los usuarios con la App móvil instalada que hayan aceptado la recepción de notificaciones.
+                   </p>
+                </div>
              </div>
           </motion.div>
         )}

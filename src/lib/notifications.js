@@ -1,4 +1,4 @@
-import { query } from './db';
+import { sendPushToUser } from './push-notifications.js';
 
 /**
  * KLICUS Internal Notification Service
@@ -11,10 +11,19 @@ export async function createNotification({ userId, title, message, type = 'info'
       return false;
     }
 
+    // 1. Save to Database (Internal History)
     await query(`
       INSERT INTO notifications (user_id, title, message, type, link)
       VALUES (?, ?, ?, ?, ?)
     `, [userId, title, message, type, link]);
+
+    // 2. Trigger Real-Time Push Notification
+    // We do this in the background (no await) to not block the main flow
+    sendPushToUser(userId, {
+      title: title,
+      body: message,
+      data: { type, link }
+    }).catch(err => console.error('[FCM-SILENT-ERROR]', err));
 
     return true;
   } catch (error) {

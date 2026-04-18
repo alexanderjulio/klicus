@@ -3,11 +3,10 @@
  * Handles the submission of new advertisements, including multi-image processing to WebP.
  */
 
-import { NextResponse } from 'next/server';
+import { apiResponse, ApiError } from '@/lib/api-utils';
 import { query } from '@/lib/db';
 import { processAdImage } from '@/lib/image-service';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getUniversalSession } from '@/lib/auth-helper';
 import crypto from 'crypto';
 
 /**
@@ -15,9 +14,9 @@ import crypto from 'crypto';
  */
 export async function POST(req) {
   try {
-    // 1. Session Verification
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    // 1. Session Verification (Universal)
+    const user = await getUniversalSession(req);
+    if (!user) return ApiError.unauthorized();
 
     // 2. Data Extraction
     const formData = await req.formData();
@@ -39,35 +38,28 @@ export async function POST(req) {
     const isOffer = formData.get('isOffer') === 'true';
     const files = formData.getAll('images'); // Multiple image files
 
-    // 2.5 Dynamic Validation: Use the requested priority limits
-    // Limits mapping derived from plans.js
-    const LIMITS = {
-      basic: 1,
-      pro: 3,
-      diamond: 5
-    };
+    // 2.5 Dynamic Validation
+    const LIMITS = { basic: 1, pro: 3, diamond: 5 };
     const maxAllowedImages = LIMITS[requestedPriority] || 1;
 
     if (files.length > maxAllowedImages) {
-      return NextResponse.json({ 
-        error: `El plan ${requestedPriority.toUpperCase()} solo permite ${maxAllowedImages} foto(s). Has enviado ${files.length}.` 
-      }, { status: 400 });
+      return ApiError.badRequest(`El plan ${requestedPriority.toUpperCase()} solo permite ${maxAllowedImages} foto(s). Has enviado ${files.length}.`);
     }
 
     // 2.6 Dynamic Expiration Logic from DB
     const planData = await query('SELECT duration_days FROM plans WHERE plan_name = ?', [requestedPriority]);
-    const durationDays = planData[0]?.duration_days || 30; // Fallback to 30
+    const durationDays = planData[0]?.duration_days || 30;
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + durationDays);
 
     const imageUrls = [];
 
-    // 3. Image Processing (Sharp + WebP)
+    // 3. Image Processing
     for (const file of files.slice(0, maxAllowedImages)) {
       if (file.size > 0) {
         const buffer = Buffer.from(await file.arrayBuffer());
-        const url = await processAdImage(buffer, file.name);
+        const url = await processAdImage(buffer, file.name || 'image.webp');
         imageUrls.push(url);
       }
     }
@@ -86,12 +78,12 @@ export async function POST(req) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       adId, 
-      session.user.id, 
+      user.id, 
       categoryId, 
       title, 
       description, 
       JSON.stringify(imageUrls), 
-      requestedPriority, // Correctly save the requested priority!
+      requestedPriority,
       'pending', 
       location,
       address,
@@ -109,14 +101,16 @@ export async function POST(req) {
     ]);
 
 
-    return NextResponse.json({ 
-      success: true, 
-      adId,
-      message: 'Anuncio creado. Pendiente de aprobación por el administrador.' 
+    return apiResponse({ 
+      data: {
+        success: true, 
+        adId,
+        message: 'Anuncio creado. Pendiente de aprobación por el administrador.' 
+      }
     });
 
   } catch (error) {
     console.error('Error creando pauta:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+    return ApiError.serverError();
   }
 }

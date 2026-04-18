@@ -1,27 +1,26 @@
 import { query } from '@/lib/db';
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { apiResponse, ApiError } from '@/lib/api-utils';
+import { getUniversalSession } from '@/lib/auth-helper';
 import { processAdImage } from '@/lib/image-service';
 
 export async function PUT(req, { params: paramsPromise }) {
   try {
     const params = await paramsPromise;
     const { id } = await params;
-    const session = await getServerSession(authOptions);
+    const user = await getUniversalSession(req);
     
     // Security check: Only owner or admin can edit
-    const userId = session?.user?.id || 'demo-user-123';
-    const isAdmin = session?.user?.role === 'admin';
+    const userId = user?.id || 'demo-user-123';
+    const isAdmin = user?.role === 'admin';
 
     const check = await query('SELECT owner_id, priority_level FROM advertisements WHERE id = ?', [id]);
-    if (check.length === 0) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
+    if (check.length === 0) return ApiError.notFound('Pauta no encontrada');
     
     if (check[0].owner_id !== userId && !isAdmin) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+      return ApiError.unauthorized('No autorizado para editar esta pauta');
     }
 
-    // 2. Data Extraction via FormData (to handle files + text)
+    // 2. Data Extraction via FormData
     const formData = await req.formData();
     const title = formData.get('title');
     const description = formData.get('description');
@@ -50,7 +49,7 @@ export async function PUT(req, { params: paramsPromise }) {
 
     const finalImageUrls = [...existingImages];
 
-    // Process new images (only if combined count < limit)
+    // Process new images
     for (const file of newFiles) {
       if (file.size > 0 && finalImageUrls.length < maxAllowed) {
         const buffer = Buffer.from(await file.arrayBuffer());
@@ -59,7 +58,7 @@ export async function PUT(req, { params: paramsPromise }) {
       }
     }
 
-    // Update the ad and force pending status for verification
+    // Update the ad
     await query(`
       UPDATE advertisements 
       SET 
@@ -91,14 +90,13 @@ export async function PUT(req, { params: paramsPromise }) {
       id
     ]);
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Anuncio actualizado y enviado a verificación.' 
+    return apiResponse({ 
+      data: { success: true, message: 'Anuncio actualizado y enviado a verificación.' } 
     });
 
   } catch (error) {
     console.error('Update Ad API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return ApiError.serverError();
   }
 }
 
@@ -108,14 +106,18 @@ export async function GET(req, { params: paramsPromise }) {
     const { id } = await params;
     const ad = await query('SELECT * FROM advertisements WHERE id = ?', [id]);
     
-    if (ad.length === 0) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
+    if (ad.length === 0) return ApiError.notFound('Anuncio no encontrado');
     
-    return NextResponse.json({
+    const formattedAd = {
       ...ad[0],
       image_urls: typeof ad[0].image_urls === 'string' ? JSON.parse(ad[0].image_urls) : (ad[0].image_urls || [])
-    });
+    };
+
+    return apiResponse({ data: formattedAd });
+
   } catch (error) {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Get Ad API Error:', error);
+    return ApiError.serverError();
   }
 }
 
@@ -123,28 +125,28 @@ export async function DELETE(req, { params: paramsPromise }) {
   try {
     const params = await paramsPromise;
     const { id } = await params;
-    const session = await getServerSession(authOptions);
+    const user = await getUniversalSession(req);
     
-    const userId = session?.user?.id || 'demo-user-123';
-    const isAdmin = session?.user?.role === 'admin';
+    const userId = user?.id || 'demo-user-123';
+    const isAdmin = user?.role === 'admin';
 
     // Verify ownership
     const check = await query('SELECT owner_id FROM advertisements WHERE id = ?', [id]);
-    if (check.length === 0) {
-      return NextResponse.json({ error: 'Pauta no encontrada' }, { status: 404 });
-    }
+    if (check.length === 0) return ApiError.notFound('Pauta no encontrada');
 
     if (check[0].owner_id !== userId && !isAdmin) {
-      return NextResponse.json({ error: 'No autorizado para eliminar esta pauta' }, { status: 403 });
+      return ApiError.unauthorized('No autorizado para eliminar esta pauta');
     }
 
     // Execute deletion
     await query('DELETE FROM advertisements WHERE id = ?', [id]);
 
-    return NextResponse.json({ success: true, message: 'Pauta eliminada con éxito' });
+    return apiResponse({ 
+      data: { success: true, message: 'Pauta eliminada con éxito' } 
+    });
 
   } catch (error) {
     console.error('Delete Ad API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return ApiError.serverError();
   }
 }

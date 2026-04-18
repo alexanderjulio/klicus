@@ -1,0 +1,127 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+class ApiService {
+  static String get baseUrl {
+    if (kIsWeb) return 'http://localhost:4000/api';
+    return 'http://10.0.2.2:4000/api'; // Android Emulator
+  }
+
+  static String normalizeUrl(String? path) {
+    if (path == null || path.isEmpty) return 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1000&auto=format&fit=crop';
+    if (path.startsWith('http')) return path;
+    
+    // Extract base server URL (without /api)
+    final serverUrl = baseUrl.replaceFirst('/api', '');
+    if (path.startsWith('/')) {
+      return '$serverUrl$path';
+    }
+    return '$serverUrl/$path';
+  }
+  
+  final Dio _dio = Dio(BaseOptions(
+    baseUrl: baseUrl,
+    connectTimeout: const Duration(seconds: 15),
+    receiveTimeout: const Duration(seconds: 15),
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-Api-Version': '1.0',
+    },
+  ));
+
+  final _storage = const FlutterSecureStorage();
+
+  ApiService() {
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        final token = await _storage.read(key: 'auth_token');
+        if (token != null) {
+          options.headers['Authorization'] = 'Bearer $token';
+        } else {
+          // Add Guest identification for unauthenticated users
+          final guestId = await _storage.read(key: 'guest_id');
+          final guestName = await _storage.read(key: 'guest_name');
+          if (guestId != null) {
+            options.headers['X-Guest-ID'] = guestId;
+            if (guestName != null) options.headers['X-Guest-Name'] = guestName;
+          }
+        }
+        return handler.next(options);
+      },
+      onError: (DioException e, handler) {
+        print('API Error: ${e.response?.statusCode} - ${e.message}');
+        return handler.next(e);
+      },
+    ));
+  }
+
+  Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {
+    return await _dio.get(path, queryParameters: queryParameters);
+  }
+
+  Future<Response> post(String path, {dynamic data}) async {
+    return await _dio.post(path, data: data);
+  }
+
+  Future<Response> put(String path, {dynamic data}) async {
+    return await _dio.put(path, data: data);
+  }
+
+  Future<Response> patch(String path, {dynamic data}) async {
+    return await _dio.patch(path, data: data);
+  }
+
+  Future<Response> delete(String path, {Map<String, dynamic>? queryParameters}) async {
+    return await _dio.delete(path, queryParameters: queryParameters);
+  }
+
+  Future<Response> uploadFile(String path, String filePath, {Map<String, dynamic>? extraData}) async {
+    final formData = FormData.fromMap({
+      'image': await MultipartFile.fromFile(filePath),
+      if (extraData != null) ...extraData,
+    });
+
+    return await _dio.post(path, data: formData);
+  }
+
+  Future<void> saveToken(String token) async {
+    await _storage.write(key: 'auth_token', value: token);
+  }
+
+  Future<String?> getStoredToken() async {
+    return await _storage.read(key: 'auth_token');
+  }
+
+  Future<void> saveUserData(Map<String, dynamic> user) async {
+    await _storage.write(key: 'user_data', value: jsonEncode(user));
+  }
+
+  Future<void> saveGuestData(String id, String name) async {
+    await _storage.write(key: 'guest_id', value: id);
+    await _storage.write(key: 'guest_name', value: name);
+  }
+
+  Future<String?> getGuestId() async {
+    return await _storage.read(key: 'guest_id');
+  }
+
+  Future<String?> getGuestName() async {
+    return await _storage.read(key: 'guest_name');
+  }
+
+  Future<Map<String, dynamic>?> getUserData() async {
+    final data = await _storage.read(key: 'user_data');
+    if (data != null) {
+      return jsonDecode(data) as Map<String, dynamic>;
+    }
+    return null;
+  }
+
+  Future<void> logout() async {
+    await _storage.delete(key: 'auth_token');
+    await _storage.delete(key: 'user_data');
+  }
+}

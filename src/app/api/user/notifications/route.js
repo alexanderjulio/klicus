@@ -1,7 +1,6 @@
 import { query } from '@/lib/db';
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getUniversalSession } from '@/lib/auth-helper';
 
 /**
  * KLICUS User Notifications API
@@ -10,8 +9,8 @@ import { authOptions } from '@/lib/auth';
  */
 export async function GET(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const user = await getUniversalSession(req);
+    if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -20,7 +19,7 @@ export async function GET(req) {
       WHERE user_id = ? 
       ORDER BY created_at DESC 
       LIMIT 20
-    `, [session.user.id]);
+    `, [user.id]);
 
     return NextResponse.json({ success: true, notifications });
   } catch (error) {
@@ -31,17 +30,17 @@ export async function GET(req) {
 
 export async function PATCH(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const user = await getUniversalSession(req);
+    if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     const { id, all } = await req.json();
 
     if (all) {
-      await query('UPDATE notifications SET is_read = TRUE WHERE user_id = ?', [session.user.id]);
+      await query('UPDATE notifications SET is_read = TRUE WHERE user_id = ?', [user.id]);
     } else {
-      await query('UPDATE notifications SET is_read = TRUE WHERE id = ? AND user_id = ?', [id, session.user.id]);
+      await query('UPDATE notifications SET is_read = TRUE WHERE id = ? AND user_id = ?', [id, user.id]);
     }
 
     return NextResponse.json({ success: true });

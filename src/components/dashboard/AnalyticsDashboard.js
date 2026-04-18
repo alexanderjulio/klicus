@@ -30,7 +30,7 @@ export default function AnalyticsDashboard({
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [isExportOpen, setIsExportOpen] = useState(false);
 
-  const safeTotals = totals || { views: 0, clicks: 0, contacts: 0, ctr: 0, conversionRate: 0 };
+  const safeStats = data.stats || { views: 0, clicks: 0, contacts: 0, ctr: 0, installs: 0, sessions: 0 };
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   // --- EXPORT LOGIC ---
@@ -46,15 +46,17 @@ export default function AnalyticsDashboard({
         'Fecha': day.date,
         'Vistas': day.views || 0,
         'Clics': day.clicks || 0,
+        'Chat': day.chats || 0,
         'Contactos WA': day.contacts || 0
       }));
 
       // Add totals row
       rows.push({
         'Fecha': 'TOTALES',
-        'Vistas': safeTotals.views,
-        'Clics': safeTotals.clicks,
-        'Contactos WA': safeTotals.contacts
+        'Vistas': safeStats.views,
+        'Clics': safeStats.clicks,
+        'Chat': safeStats.chats,
+        'Contactos WA': safeStats.contacts
       });
 
       const worksheet = XLSX.utils.json_to_sheet(rows);
@@ -117,11 +119,12 @@ export default function AnalyticsDashboard({
         startY: 75,
         head: [['Métrica', 'Resultado Acumulado']],
         body: [
-          ['Vistas Totales', safeTotals.views],
-          ['Clics Únicos', safeTotals.clicks],
-          ['Contactos WhatsApp', safeTotals.contacts],
-          ['CTR Promedio', `${safeTotals.ctr}%`],
-          ['Conversión', `${safeTotals.conversionRate}%`]
+          ['Vistas Totales', safeStats.views],
+          ['Clics Únicos', safeStats.clicks],
+          ['Chats Iniciados', safeStats.chats],
+          ['Contactos WhatsApp', safeStats.contacts],
+          ['CTR Promedio', `${safeStats.ctr}%`],
+          ['Conversión', `${safeStats.conversionRate}%`]
         ],
         theme: 'striped',
         headStyles: { fillColor: [14, 34, 68], textColor: [255, 255, 255] }
@@ -130,8 +133,8 @@ export default function AnalyticsDashboard({
       // Detailed History Table
       autoTable(doc, {
         startY: doc.lastAutoTable.finalY + 15,
-        head: [['Fecha', 'Vistas', 'Clics', 'Contactos (WA)']],
-        body: timeSeries.map(d => [d.date, d.views, d.clicks, d.contacts]),
+        head: [['Fecha', 'Vistas', 'Clics', 'Chats', 'Contactos (WA)']],
+        body: timeSeries.map(d => [d.date, d.views, d.clicks, d.chats, d.contacts]),
         theme: 'grid',
         headStyles: { fillColor: [226, 224, 0], textColor: [28, 28, 28] }
       });
@@ -289,11 +292,12 @@ export default function AnalyticsDashboard({
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {[
-          { label: 'Vistas Totales', value: safeTotals.views || 0, icon: <Eye size={18} />, color: 'text-zinc-400' },
-          { label: 'Clics Únicos', value: safeTotals.clicks || 0, icon: <MousePointer2 size={18} />, color: 'text-primary' },
-          { label: 'Contactos WA', value: safeTotals.contacts || 0, icon: <MessageCircle size={18} />, color: 'text-emerald-500' },
-          { label: 'CTR Promedio', value: `${safeTotals.ctr || 0}%`, icon: <TrendingUp size={18} />, color: 'text-amber-500' },
-          { label: 'Conversión', value: `${safeTotals.conversionRate || 0}%`, icon: <Activity size={18} />, color: 'text-emerald-400' },
+          { label: 'Descargas App', value: safeStats.installs || 0, icon: <Download size={18} />, color: 'text-primary' },
+          { label: 'Sesiones Activas', value: safeStats.sessions || 0, icon: <Activity size={18} />, color: 'text-amber-500' },
+          { label: 'Chats Inicia.', value: safeStats.chats || 0, icon: <MessageCircle size={18} />, color: 'text-emerald-500' },
+          { label: 'Vistas Totales', value: safeStats.views || 0, icon: <Eye size={18} />, color: 'text-zinc-400' },
+          { label: 'Clics Únicos', value: safeStats.clicks || 0, icon: <MousePointer2 size={18} />, color: 'text-primary' },
+          { label: 'CTR Promedio', value: `${safeStats.ctr || 0}%`, icon: <TrendingUp size={18} />, color: 'text-amber-500' },
         ].map((card, i) => (
           <motion.div 
             key={i}
@@ -361,6 +365,14 @@ export default function AnalyticsDashboard({
                 />
                 <Area 
                   type="monotone" 
+                  dataKey="installs" 
+                  stroke="#10b981" 
+                  strokeWidth={4} 
+                  fill="transparent" 
+                  name="Descargas"
+                />
+                <Area 
+                  type="monotone" 
                   dataKey="clicks" 
                   stroke="#1C1C1C" 
                   strokeWidth={4} 
@@ -369,11 +381,11 @@ export default function AnalyticsDashboard({
                 />
                 <Area 
                   type="monotone" 
-                  dataKey="contacts" 
+                  dataKey="chats" 
                   stroke="#10b981" 
                   strokeWidth={4} 
                   fill="transparent" 
-                  name="Contactos"
+                  name="Chats"
                 />
               </AreaChart>
             </ResponsiveContainer>

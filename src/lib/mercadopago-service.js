@@ -3,7 +3,7 @@
  * Integration with Mercado Pago Node.js SDK for processing COP payments.
  */
 
-import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 
 // Initialize MP Client with access token from .env
 // Fallback to a generic test token for initial development if not defined
@@ -60,7 +60,22 @@ export async function createPaymentPreference({ title, price, quantity = 1, adId
 
     return result.init_point;
   } catch (error) {
-    console.error('❌ MP PREFERENCE ERROR:', error.message, error.stack);
+    throw error;
+  }
+}
+
+/**
+ * Retrieves details of a payment by its ID
+ * @param {string} paymentId - The ID sent by the webhook
+ * @returns {Promise<Object>} - The payment data
+ */
+export async function getPaymentDetails(paymentId) {
+  const payment = new Payment(client);
+  try {
+    const response = await payment.get({ id: paymentId });
+    return response;
+  } catch (error) {
+    console.error(`❌ MP GET_PAYMENT ERROR [ID: ${paymentId}]:`, error.message);
     throw error;
   }
 }

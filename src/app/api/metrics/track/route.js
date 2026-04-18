@@ -10,29 +10,42 @@ export async function POST(req) {
   try {
     const { adId, eventType } = await req.json();
 
-    if (!adId || !['view', 'click', 'contact'].includes(eventType)) {
-      return NextResponse.json({ error: 'Faltan parámetros o el tipo de evento es inválido' }, { status: 400 });
+    const isGlobalEvent = ['install', 'session'].includes(eventType);
+    const isAdEvent = ['view', 'click', 'contact', 'chat'].includes(eventType);
+
+    if (!eventType || (!isGlobalEvent && !isAdEvent)) {
+      return NextResponse.json({ error: 'Tipo de evento inválido' }, { status: 400 });
     }
 
-    // 1. Device Detection from User-Agent
+    if (isAdEvent && !adId) {
+      return NextResponse.json({ error: 'Falta adId para este evento' }, { status: 400 });
+    }
+
+    // 1. Device Detection (Enhanced for Flutter)
     const ua = req.headers.get('user-agent') || '';
+    const source = req.headers.get('x-source') || '';
+    
     let deviceType = 'desktop';
-    if (/mobile/i.test(ua)) deviceType = 'mobile';
-    if (/tablet/i.test(ua)) deviceType = 'pwa'; // Mapping tablet to 'pwa' or just keep mobile
+    if (source === 'mobile-app' || /dart/i.test(ua) || /klicus-app/i.test(ua)) {
+      deviceType = 'mobile-app';
+    } else if (/mobile/i.test(ua)) {
+      deviceType = 'mobile-web';
+    }
     
     // 2. IP Hashing for basic deduplication (privacy-safe)
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
-    const ipHash = crypto.createHash('sha256').update(ip + adId + eventType).digest('hex');
+    const dedupeKey = isGlobalEvent ? eventType : (adId + eventType);
+    const ipHash = crypto.createHash('sha256').update(ip + dedupeKey).digest('hex');
 
     // 3. Rate Limiting / Deduplication Logic:
-    // Don't record same event from same IP for same ad within 1 hour for views, 1 minute for clicks
-    const timeWindow = eventType === 'view' ? 'INTERVAL 1 HOUR' : 'INTERVAL 1 MINUTE';
+    // Don't record same event from same IP for same target within a time window
+    const timeWindow = (eventType === 'view' || eventType === 'install') ? 'INTERVAL 1 HOUR' : 'INTERVAL 1 MINUTE';
     
     const recentEvents = await query(`
       SELECT id FROM metrics 
-      WHERE ad_id = ? AND event_type = ? AND ip_hash = ? AND created_at > DATE_SUB(NOW(), ${timeWindow})
+      WHERE ${isGlobalEvent ? 'ad_id IS NULL' : 'ad_id = ?'} AND event_type = ? AND ip_hash = ? AND created_at > DATE_SUB(NOW(), ${timeWindow})
       LIMIT 1
-    `, [adId, eventType, ipHash]);
+    `, isGlobalEvent ? [eventType, ipHash] : [adId, eventType, ipHash]);
 
     if (recentEvents.length > 0) {
       // Skip insertion to avoid inflation
@@ -43,7 +56,7 @@ export async function POST(req) {
     await query(`
       INSERT INTO metrics (ad_id, event_type, device_type, ip_hash)
       VALUES (?, ?, ?, ?)
-    `, [adId, eventType, deviceType, ipHash]);
+    `, [adId || null, eventType, deviceType, ipHash]);
 
     return NextResponse.json({ success: true });
 

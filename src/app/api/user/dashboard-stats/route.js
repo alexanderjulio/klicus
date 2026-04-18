@@ -1,15 +1,11 @@
 import { query } from '@/lib/db';
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthenticatedUser } from '@/lib/auth-util';
 
-export async function GET() {
+export async function GET(req) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    // In a real environment, we would check for session.
-    // For this pair-programming demo, we'll fallback to a sample user id if not logged in.
-    const userId = session?.user?.id || 'demo-user-123';
+    const user = await getAuthenticatedUser(req);
+    const userId = user?.id || 'demo-user-123';
 
     // 1. Get user ads with their stats using subqueries for metrics counts
     const ads = await query(`

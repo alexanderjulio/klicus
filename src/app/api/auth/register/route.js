@@ -12,9 +12,9 @@ export async function POST(req) {
     }
 
     // Check if user already exists
-    const existing = await query('SELECT id FROM profiles WHERE id = ? OR full_name = ?', [email, email]);
+    const existing = await query('SELECT id FROM profiles WHERE email = ?', [email]);
     if (existing.length > 0) {
-      return NextResponse.json({ error: 'El usuario ya existe' }, { status: 409 });
+      return NextResponse.json({ error: 'El usuario ya existe con ese correo' }, { status: 409 });
     }
 
     // Hash password

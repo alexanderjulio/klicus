@@ -32,14 +32,15 @@ export async function GET(req) {
       params.push(adId);
     }
 
-    // 1. Time-Series Aggregation
+    // 1. Time-Series Aggregation (Now includes installs)
     const timeSeries = await query(`
       SELECT 
         DATE_FORMAT(m.created_at, '%d/%m') as date,
         SUM(CASE WHEN m.event_type = 'view' THEN 1 ELSE 0 END) as views,
-        SUM(CASE WHEN m.event_type = 'click' THEN 1 ELSE 0 END) as clicks
+        SUM(CASE WHEN m.event_type = 'click' THEN 1 ELSE 0 END) as clicks,
+        SUM(CASE WHEN m.event_type = 'install' THEN 1 ELSE 0 END) as installs
       FROM metrics m
-      JOIN advertisements a ON m.ad_id = a.id
+      LEFT JOIN advertisements a ON m.ad_id = a.id
       ${sqlWhere}
       GROUP BY DATE_FORMAT(m.created_at, '%d/%m')
       ORDER BY m.created_at ASC
@@ -50,19 +51,21 @@ export async function GET(req) {
       SELECT 
         COUNT(DISTINCT a.id) as totalAdsActive,
         SUM(CASE WHEN m.event_type = 'view' THEN 1 ELSE 0 END) as totalViews,
-        SUM(CASE WHEN m.event_type = 'click' THEN 1 ELSE 0 END) as totalClicks
+        SUM(CASE WHEN m.event_type = 'click' THEN 1 ELSE 0 END) as totalClicks,
+        SUM(CASE WHEN m.event_type = 'install' THEN 1 ELSE 0 END) as totalInstalls,
+        SUM(CASE WHEN m.event_type = 'session' THEN 1 ELSE 0 END) as totalSessions
       FROM metrics m
-      JOIN advertisements a ON m.ad_id = a.id
+      LEFT JOIN advertisements a ON m.ad_id = a.id
       ${sqlWhere}
     `, params);
 
-    // 3. Device Breakdown (Global or Filtered)
+    // 3. Device Breakdown
     const devices = await query(`
       SELECT 
         m.device_type as name,
         COUNT(*) as value
       FROM metrics m
-      JOIN advertisements a ON m.ad_id = a.id
+      LEFT JOIN advertisements a ON m.ad_id = a.id
       ${sqlWhere}
       GROUP BY m.device_type
     `, params);
@@ -75,6 +78,8 @@ export async function GET(req) {
         ads: totals[0]?.totalAdsActive || 0,
         views: totals[0]?.totalViews || 0,
         clicks: totals[0]?.totalClicks || 0,
+        installs: totals[0]?.totalInstalls || 0,
+        sessions: totals[0]?.totalSessions || 0,
         ctr: totals[0]?.totalViews > 0 ? ((totals[0].totalClicks / totals[0].totalViews) * 100).toFixed(2) : 0
       }
     });
