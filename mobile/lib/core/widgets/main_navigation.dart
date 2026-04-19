@@ -25,7 +25,7 @@ class MainNavigation extends StatelessWidget {
     ];
 
     return Scaffold(
-      extendBody: true,
+      extendBody: false,
       body: IndexedStack(
         index: nav.currentIndex,
         children: screens,
@@ -38,43 +38,30 @@ class MainNavigation extends StatelessWidget {
     final navy = const Color(0xFF0E2244);
     final yellow = const Color(0xFFE2E000);
 
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(28, 0, 28, 24),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(40),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 30,
-              offset: const Offset(0, 15),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(40),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              decoration: BoxDecoration(
-                // NAVY GLASS
-                color: navy.withOpacity(0.92),
-                borderRadius: BorderRadius.circular(40),
-                border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+    return Container(
+      decoration: BoxDecoration(
+        color: navy,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 15,
+            offset: const Offset(0, -5), // Shadow upwards for depth
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(context, 0, Icons.storefront_outlined, Icons.storefront, 'MARKET'),
+              Consumer<NotificationProvider>(
+                builder: (context, notif, child) => 
+                  _buildNavItem(context, 1, Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'CHATS', hasBadge: notif.unreadCount > 0),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(context, 0, Icons.storefront_outlined, Icons.storefront, 'MARKET'),
-                  Consumer<NotificationProvider>(
-                    builder: (context, notif, child) => 
-                      _buildNavItem(context, 1, Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'CHATS', hasBadge: notif.unreadCount > 0),
-                  ),
-                  _buildNavItem(context, 2, Icons.person_outline_rounded, Icons.person_rounded, 'PERFIL'),
-                ],
-              ),
-            ),
+              _buildNavItem(context, 2, Icons.person_outline_rounded, Icons.person_rounded, 'PERFIL'),
+            ],
           ),
         ),
       ),

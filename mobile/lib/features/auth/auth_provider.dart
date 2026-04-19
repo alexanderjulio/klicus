@@ -120,22 +120,29 @@ class AuthProvider with ChangeNotifier {
         _isAuthenticated = true;
         notifyListeners(); // Immediate update with cached data
 
-        // 2. Validate session & update profile in background
-        final response = await _apiService.get('/auth/me');
-        if (response.statusCode == 200) {
-          _currentUser = response.data['user'];
-          await _apiService.saveUserData(_currentUser!);
-          await fetchDashboardStats();
-        } else {
-          // Token expired or invalid
-          await logout();
+        try {
+          // 2. Validate session & update profile in background
+          final response = await _apiService.get('/auth/me');
+          if (response.statusCode == 200) {
+            _currentUser = response.data['user'];
+            await _apiService.saveUserData(_currentUser!);
+            await fetchDashboardStats();
+          } else {
+            // Token expired or invalid
+            await logout();
+          }
+        } on Exception catch (e) {
+          // Check if it's a 401 error via direct comparison or status code
+          if (e.toString().contains('401')) {
+            await logout();
+          }
+          debugPrint('Session validation error: $e');
         }
       } else {
         _isAuthenticated = false;
       }
     } catch (e) {
-      debugPrint('CheckAuth error: $e');
-      // On network error, we keep the cached session if available
+      debugPrint('CheckAuth overall error: $e');
     } finally {
       notifyListeners();
     }

@@ -3,6 +3,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
 import '../../core/api_service.dart';
 import '../../models/ad_model.dart';
 import '../auth/auth_provider.dart';
@@ -36,6 +38,17 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
       analytics.trackEvent(adId: widget.ad.id, eventType: 'view');
     } catch (e) {
       debugPrint('Analytics error: $e');
+    }
+  }
+
+  Future<void> _shareAd() async {
+    final String shareText = '¡Mira este anuncio en KLICUS!\n\n${widget.ad.title}\n${widget.ad.location}\n\nEncuentra más en la App de KLICUS.';
+    try {
+      final analytics = context.read<AnalyticsService>();
+      await analytics.trackEvent(adId: widget.ad.id, eventType: 'share');
+      await Share.share(shareText, subject: 'Compartir Anuncio KLICUS');
+    } catch (e) {
+      debugPrint('Share error: $e');
     }
   }
 
@@ -264,6 +277,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                   // DOT INDICATORS (Ignoring pointers to allow PageView drag)
                   if (widget.ad.imageUrls.length > 1)
                     IgnorePointer(
+                      ignoring: false, // Explicitly allow interaction for dots
                       child: Positioned(
                         bottom: 30,
                         left: 0,
@@ -271,14 +285,21 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: List.generate(widget.ad.imageUrls.length, (index) {
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                              width: _currentPage == index ? 24 : 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: _currentPage == index ? yellow : Colors.white.withOpacity(0.5),
-                                borderRadius: BorderRadius.circular(10),
+                            return GestureDetector(
+                              onTap: () => _pageController.animateToPage(
+                                index, 
+                                duration: const Duration(milliseconds: 400), 
+                                curve: Curves.easeInOutExpo
+                              ),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8), // More hit area
+                                width: _currentPage == index ? 24 : 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: _currentPage == index ? yellow : Colors.white.withOpacity(0.5),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
                             );
                           }),
@@ -337,7 +358,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                           ),
                         ),
                         Text(
-                          'PUBLICADO HOY',
+                          'PUBLICADO EL ${DateFormat.yMMMd().format(widget.ad.createdAt).toUpperCase()}',
                           style: GoogleFonts.outfit(
                             color: Colors.grey[400],
                             fontSize: 9,
@@ -567,7 +588,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
           _buildActionItem(Icons.public_rounded, 'Web', () {
              if (widget.ad.websiteUrl != null) _launchUrl(widget.ad.websiteUrl!, 'web');
           }),
-          _buildActionItem(Icons.share_rounded, 'Compartir', () {}),
+          _buildActionItem(Icons.share_rounded, 'Compartir', () => _shareAd()),
         ],
       ),
     );

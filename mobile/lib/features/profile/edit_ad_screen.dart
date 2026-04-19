@@ -1,10 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
+import 'package:dio/dio.dart' as dio;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/api_service.dart';
 import '../../models/ad_model.dart';
 import '../auth/auth_provider.dart';
@@ -21,7 +22,11 @@ class _EditAdScreenState extends State<EditAdScreen> {
   late TextEditingController _titleController;
   late TextEditingController _descController;
   late TextEditingController _locationController;
+  late TextEditingController _priceController;
+  late TextEditingController _cellphoneController;
+  late TextEditingController _webController;
   
+  late List<String> _currentImageUrls;
   final List<XFile> _newImages = [];
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
@@ -32,6 +37,10 @@ class _EditAdScreenState extends State<EditAdScreen> {
     _titleController = TextEditingController(text: widget.ad.title);
     _descController = TextEditingController(text: widget.ad.description);
     _locationController = TextEditingController(text: widget.ad.location);
+    _priceController = TextEditingController(text: widget.ad.priceRange ?? '');
+    _cellphoneController = TextEditingController(text: widget.ad.cellphone ?? '');
+    _webController = TextEditingController(text: widget.ad.websiteUrl ?? '');
+    _currentImageUrls = List.from(widget.ad.imageUrls);
   }
 
   Future<void> _pickImage() async {
@@ -70,52 +79,61 @@ class _EditAdScreenState extends State<EditAdScreen> {
     setState(() => _isLoading = true);
     try {
       final api = context.read<ApiService>();
-      final auth = context.read<AuthProvider>();
       
-      // We need to send multipart request
-      var request = http.MultipartRequest(
-        'PUT', 
-        Uri.parse("${ApiService.baseUrl}/anuncio/${widget.ad.id}")
-      );
+      // Use dio.FormData which correctly handles lists of keys
+      final formDataMap = {
+        'title': _titleController.text,
+        'description': _descController.text,
+        'location': _locationController.text,
+        'price_range': _priceController.text,
+        'cellphone': _cellphoneController.text,
+        'website_url': _webController.text,
+        'kept_images': _currentImageUrls, 
+      };
 
-      // Auth Header
-      final token = await api.saveToken(''); // Just to trigger read or use real token getter
-      // (Improving ApiService to expose token would be better, but let's use what we have or assume interceptor logic)
-      
-      request.fields['title'] = _titleController.text;
-      request.fields['description'] = _descController.text;
-      request.fields['location'] = _locationController.text;
-      
-      // Kept images (old ones)
-      for (var url in widget.ad.imageUrls) {
-        request.fields.addAll({'kept_images': url});
-      }
+      final formData = dio.FormData.fromMap(formDataMap);
 
-      // New images
+      // Add new files (Platform-aware logic)
       for (var file in _newImages) {
-        request.files.add(await http.MultipartFile.fromPath(
-          'images', 
-          file.path,
-          contentType: MediaType('image', 'jpeg'),
-        ));
+        if (kIsWeb) {
+          // Web: Use Bytes
+          formData.files.add(MapEntry(
+            'images',
+            dio.MultipartFile.fromBytes(
+              await file.readAsBytes(), 
+              filename: file.name
+            ),
+          ));
+        } else {
+          // Mobile: Use File system
+          formData.files.add(MapEntry(
+            'images',
+            await dio.MultipartFile.fromFile(file.path),
+          ));
+        }
       }
 
-      // Note: In a production app, use ApiService with Dio for easier multipart/auth combo
-      // For this implementation, we'll assume the backend handles the Multipart PUT.
-      
-      final response = await request.send();
+      final response = await api.put("/anuncio/${widget.ad.id}", data: formData);
       
       if (response.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Anuncio actualizado con éxito')));
-          Navigator.pop(context);
+          Navigator.pop(context, true);
         }
       } else {
-        throw Exception('Error al actualizar');
+        throw dio.DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          message: 'Error al actualizar: ${response.data['error'] ?? 'Desconocido'}',
+        );
       }
     } catch (e) {
+      String errorMessage = e.toString();
+      if (e is dio.DioException) {
+        errorMessage = e.response?.data?['error'] ?? e.message ?? 'Error de conexión';
+      }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $errorMessage')));
       }
     } finally {
       setState(() => _isLoading = false);
@@ -158,6 +176,17 @@ class _EditAdScreenState extends State<EditAdScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 24),
+
+            Row(
+              children: [
+                Expanded(child: _buildTextField(label: 'PRECIO / RANGO', controller: _priceController, keyboardType: TextInputType.text, hint: 'Ej: 50.000 - 100.000')),
+                const SizedBox(width: 16),
+                Expanded(child: _buildTextField(label: 'WHATSAPP / CEL', controller: _cellphoneController, keyboardType: TextInputType.phone, hint: '313...')),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildTextField(label: 'SITIO WEB / LINK', controller: _webController, keyboardType: TextInputType.url, hint: 'https://...'),
             
             const SizedBox(height: 32),
             const Text('IMÁGENES', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.grey)),
@@ -167,12 +196,19 @@ class _EditAdScreenState extends State<EditAdScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 10, mainAxisSpacing: 10),
-              itemCount: widget.ad.imageUrls.length + _newImages.length + 1,
+              itemCount: _currentImageUrls.length + _newImages.length + 1,
               itemBuilder: (context, index) {
-                if (index < widget.ad.imageUrls.length) {
-                  return _ImagePreview(url: widget.ad.imageUrls[index]);
-                } else if (index < widget.ad.imageUrls.length + _newImages.length) {
-                  return _FilePreview(file: _newImages[index - widget.ad.imageUrls.length]);
+                if (index < _currentImageUrls.length) {
+                  return _ImagePreview(
+                    url: _currentImageUrls[index],
+                    onDelete: () => setState(() => _currentImageUrls.removeAt(index)),
+                  );
+                } else if (index < _currentImageUrls.length + _newImages.length) {
+                  final newIndex = index - _currentImageUrls.length;
+                  return _FilePreview(
+                    file: _newImages[newIndex],
+                    onDelete: () => setState(() => _newImages.removeAt(newIndex)),
+                  );
                 } else {
                   return _AddButton(onTap: _pickImage);
                 }
@@ -201,7 +237,13 @@ class _EditAdScreenState extends State<EditAdScreen> {
     );
   }
 
-  Widget _buildTextField({required String label, required TextEditingController controller, int maxLines = 1}) {
+  Widget _buildTextField({
+    required String label, 
+    required TextEditingController controller, 
+    int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
+    String? hint,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -210,10 +252,15 @@ class _EditAdScreenState extends State<EditAdScreen> {
         TextField(
           controller: controller,
           maxLines: maxLines,
+          keyboardType: keyboardType,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey[300], fontSize: 12, fontWeight: FontWeight.normal),
             filled: true,
             fillColor: Colors.grey[50],
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           ),
         ),
       ],
@@ -223,26 +270,73 @@ class _EditAdScreenState extends State<EditAdScreen> {
 
 class _ImagePreview extends StatelessWidget {
   final String url;
-  const _ImagePreview({required this.url});
+  final VoidCallback onDelete;
+  const _ImagePreview({required this.url, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Image.network(url, fit: BoxFit.cover),
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.network(
+              url, 
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: Colors.grey[100],
+                child: const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey, size: 20)),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            onTap: onDelete,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+              child: const Icon(Icons.close, size: 14, color: Colors.red),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
 class _FilePreview extends StatelessWidget {
   final XFile file;
-  const _FilePreview({required this.file});
+  final VoidCallback onDelete;
+  const _FilePreview({required this.file, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Image.file(File(file.path), fit: BoxFit.cover),
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: kIsWeb 
+              ? Image.network(file.path, fit: BoxFit.cover) // Web uses blob URL
+              : Image.file(File(file.path), fit: BoxFit.cover), // Mobile uses path
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            onTap: onDelete,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+              child: const Icon(Icons.close, size: 14, color: Colors.red),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

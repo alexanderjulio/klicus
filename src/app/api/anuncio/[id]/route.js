@@ -80,8 +80,8 @@ export async function PUT(request, { params }) {
     for (const file of newFiles) {
       if (file.size > 0) {
         const buffer = Buffer.from(await file.arrayBuffer());
-        const url = await processAdImage(buffer, file.name || 'edit.webp');
-        finalImageUrls.push(url);
+        const result = await processAdImage(buffer, file.name || 'edit.webp');
+        finalImageUrls.push(result.url);
       }
     }
 

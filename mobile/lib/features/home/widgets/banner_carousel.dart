@@ -76,7 +76,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Container(
-        height: 200,
+        height: 230,
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.grey[100],
@@ -89,7 +89,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
     if (_banners.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      height: 200,
+      height: 230,
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(30),

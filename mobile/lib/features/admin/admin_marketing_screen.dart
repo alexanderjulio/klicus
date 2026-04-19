@@ -1,7 +1,10 @@
-import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import '../home/home_screen.dart'; // To potentially trigger refresh
 import '../../core/api_service.dart';
 
 class AdminMarketingScreen extends StatefulWidget {
@@ -255,7 +258,8 @@ class _BannerFormState extends State<_BannerForm> {
   bool _isSaving = false;
   bool _isUploading = false;
   
-  File? _selectedFile;
+  XFile? _selectedXFile;
+  Uint8List? _selectedBytes;
   Map<String, dynamic>? _uploadMetadata;
 
   @override
@@ -276,17 +280,17 @@ class _BannerFormState extends State<_BannerForm> {
     );
 
     if (image != null) {
-      final file = File(image.path);
-      final sizeInBytes = await file.length();
-      final sizeInMb = sizeInBytes / (1024 * 1024);
+      final bytes = await image.readAsBytes();
+      final sizeInMb = bytes.length / (1024 * 1024);
       
       setState(() {
-        _selectedFile = file;
+        _selectedXFile = image;
+        _selectedBytes = bytes;
         _isUploading = true;
       });
 
       try {
-        final res = await _apiService.uploadFile('/admin/upload', image.path, extraData: {'type': 'marketing'});
+        final res = await _apiService.uploadFile('/admin/upload', image, extraData: {'type': 'marketing'});
         
         if (res.data['success']) {
           setState(() {
@@ -297,10 +301,17 @@ class _BannerFormState extends State<_BannerForm> {
               'dimensions': '${res.data['width']}x${res.data['height']} px',
             };
           });
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Imagen subida y optimizada con éxito'),
+            backgroundColor: Colors.green,
+          ));
         }
       } catch (e) {
         debugPrint('Upload error: $e');
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al subir imagen')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Error al subir imagen al servidor'),
+          backgroundColor: Colors.redAccent,
+        ));
       } finally {
         setState(() => _isUploading = false);
       }
@@ -371,24 +382,13 @@ class _BannerFormState extends State<_BannerForm> {
               _buildField('Título del Banner', _titleController, Icons.title_rounded, navy),
               const SizedBox(height: 16),
               _buildField('Subtítulo / Descripción corta', _subtitleController, Icons.short_text_rounded, navy),
-              const SizedBox(height: 16),
-              
-              Theme(
-                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                child: ExpansionTile(
-                  title: Text('Entrada manual de URL', style: GoogleFonts.inter(fontSize: 12, color: Colors.grey)),
-                  children: [
-                     _buildField('URL de la Imagen', _imageController, Icons.link_rounded, navy),
-                  ],
-                ),
-              ),
+              const SizedBox(height: 24),
 
-              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(child: _buildField('Texto Botón', _ctaTextController, Icons.ads_click_rounded, navy)),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildField('Link', _ctaLinkController, Icons.link_rounded, navy)),
+                  Expanded(child: _buildField('Link (/ruta)', _ctaLinkController, Icons.link_rounded, navy)),
                 ],
               ),
               const SizedBox(height: 24),
@@ -435,13 +435,13 @@ class _BannerFormState extends State<_BannerForm> {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: Colors.grey[200]!, width: 2),
             ),
-            child: _selectedFile != null 
+            child: _selectedBytes != null 
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(18),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.file(_selectedFile!, fit: BoxFit.cover),
+                      Image.memory(_selectedBytes!, fit: BoxFit.cover),
                       if (_isUploading)
                         Container(
                           color: Colors.black45,
@@ -458,9 +458,10 @@ class _BannerFormState extends State<_BannerForm> {
                 : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.add_photo_alternate_outlined, size: 40, color: Colors.grey),
+                      Icon(Icons.cloud_upload_outlined, size: 40, color: navy.withOpacity(0.5)),
                       const SizedBox(height: 12),
-                      Text('SELECCIONAR IMAGEN NATIVA', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      Text('SUBIR IMAGEN DEL BANNER', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: navy)),
+                      Text('Click para buscar en tu computadora', style: GoogleFonts.inter(fontSize: 10, color: Colors.grey)),
                     ],
                   ),
           ),

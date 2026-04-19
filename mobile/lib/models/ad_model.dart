@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class AdModel {
   final String id;
   final String title;
@@ -48,33 +50,45 @@ class AdModel {
   });
 
   factory AdModel.fromJson(Map<String, dynamic> json) {
+    // Robust parsing for image_urls (can be List or JSON String)
+    List<String> parsedImages = [];
+    var rawImages = json['image_urls'];
+    if (rawImages is List) {
+      parsedImages = rawImages.map((e) => e.toString()).toList();
+    } else if (rawImages is String && rawImages.isNotEmpty) {
+      try {
+        // Fallback for cases where DB returns raw JSON string
+        var decoded = jsonDecode(rawImages);
+        if (decoded is List) {
+          parsedImages = decoded.map((e) => e.toString()).toList();
+        }
+      } catch (_) {}
+    }
+
     return AdModel(
       id: json['id']?.toString() ?? '',
-      ownerId: json['owner_id']?.toString() ?? '',
+      ownerId: json['owner_id']?.toString() ?? json['id']?.toString() ?? '',
       title: json['title'] ?? 'Sin título',
-      description: json['description'] ?? '',
-      imageUrls: (json['image_urls'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
+      description: json['description'] ?? 'Sin descripción disponible',
+      imageUrls: parsedImages,
       priorityLevel: json['priority_level'] ?? 'basic',
       location: json['location'] ?? 'Ubicación no disponible',
       categoryName: json['category_name'] ?? 'General',
       categorySlug: json['category_slug'] ?? 'general',
       createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),
-      phone: json['phone'],
-      cellphone: json['cellphone'],
-      email: json['email'],
-      websiteUrl: json['website_url'],
-      facebookUrl: json['facebook_url'],
-      instagramUrl: json['instagram_url'],
-      businessHours: json['business_hours'],
-      address: json['address'],
-      priceRange: json['price_range'],
-      deliveryInfo: json['delivery_info'],
-      ownerName: json['owner_name'],
+      phone: json['phone']?.toString(),
+      cellphone: json['cellphone']?.toString(),
+      email: json['email']?.toString(),
+      websiteUrl: json['website_url']?.toString(),
+      facebookUrl: json['facebook_url']?.toString(),
+      instagramUrl: json['instagram_url']?.toString(),
+      businessHours: json['business_hours']?.toString(),
+      address: json['address']?.toString(),
+      priceRange: json['price_range']?.toString(),
+      deliveryInfo: json['delivery_info']?.toString(),
+      ownerName: json['owner_name']?.toString(),
     );
   }
 

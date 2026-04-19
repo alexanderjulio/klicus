@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiService {
   static String get baseUrl {
     if (kIsWeb) return 'http://localhost:4000/api';
-    return 'http://10.0.2.2:4000/api'; // Android Emulator
+    return 'http://192.168.1.5:4000/api'; // WiFi IP for Real Devices
   }
 
   static String normalizeUrl(String? path) {
@@ -23,8 +24,8 @@ class ApiService {
   
   final Dio _dio = Dio(BaseOptions(
     baseUrl: baseUrl,
-    connectTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 15),
+    connectTimeout: const Duration(seconds: 30),
+    receiveTimeout: const Duration(seconds: 30),
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -51,8 +52,16 @@ class ApiService {
         }
         return handler.next(options);
       },
-      onError: (DioException e, handler) {
+      onError: (DioException e, handler) async {
         print('API Error: ${e.response?.statusCode} - ${e.message}');
+        
+        // Global 401 Handling: Logout if token is rejected by server
+        if (e.response?.statusCode == 401) {
+          await _storage.delete(key: 'auth_token');
+          await _storage.delete(key: 'user_data');
+          debugPrint('Session invalidated globally due to 401 error.');
+        }
+        
         return handler.next(e);
       },
     ));
@@ -78,9 +87,10 @@ class ApiService {
     return await _dio.delete(path, queryParameters: queryParameters);
   }
 
-  Future<Response> uploadFile(String path, String filePath, {Map<String, dynamic>? extraData}) async {
+  Future<Response> uploadFile(String path, XFile file, {Map<String, dynamic>? extraData}) async {
+    final bytes = await file.readAsBytes();
     final formData = FormData.fromMap({
-      'image': await MultipartFile.fromFile(filePath),
+      'image': MultipartFile.fromBytes(bytes, filename: file.name),
       if (extraData != null) ...extraData,
     });
 

@@ -11,7 +11,7 @@ export async function GET(req) {
     const limit = parseInt(searchParams.get('limit')) || (type === 'suggestions' ? 8 : 40);
 
     let sql = `
-      SELECT a.id, a.title, a.priority_level, a.status, a.category_id,
+      SELECT a.id, a.title, a.priority_level, a.status, a.category_id, a.owner_id,
              c.name as category_name, c.slug as category_slug
     `;
 

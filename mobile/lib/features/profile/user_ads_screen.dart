@@ -32,7 +32,8 @@ class _UserAdsScreenState extends State<UserAdsScreen> {
     setState(() => _isLoading = true);
     try {
       final api = context.read<ApiService>();
-      final response = await api.get('/user/ads');
+      // Cache-buster: adding timestamp to force Chrome to fetch fresh data
+      final response = await api.get('/user/ads?t=${DateTime.now().millisecondsSinceEpoch}');
       
       if (response.data['success'] == true && mounted) {
         final List<dynamic> adsJson = response.data['ads'];
@@ -77,20 +78,32 @@ class _UserAdsScreenState extends State<UserAdsScreen> {
         ),
         centerTitle: true,
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: navy))
-        : _ads.isEmpty
-          ? _buildEmptyState(navy, yellow)
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              itemCount: _ads.length,
-              itemBuilder: (context, index) => _UserAdTile(
-                ad: _ads[index], 
-                onRefresh: _fetchUserAds,
-                navy: navy,
-                yellow: yellow,
+      body: RefreshIndicator(
+        onRefresh: _fetchUserAds,
+        color: navy,
+        backgroundColor: Colors.white,
+        child: _isLoading && _ads.isEmpty
+          ? const Center(child: CircularProgressIndicator(color: navy))
+          : _ads.isEmpty
+            ? SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height - 200,
+                  child: _buildEmptyState(navy, yellow),
+                ),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: _ads.length,
+                itemBuilder: (context, index) => _UserAdTile(
+                  ad: _ads[index], 
+                  onRefresh: _fetchUserAds,
+                  navy: navy,
+                  yellow: yellow,
+                ),
               ),
-            ),
+      ),
     );
   }
 
@@ -209,8 +222,11 @@ class _UserAdTile extends StatelessWidget {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => AdAnalyticsScreen(ad: ad)));
               }),
               _buildSmallAction(Icons.edit_outlined, 'Editar', () async {
-                await Navigator.push(context, MaterialPageRoute(builder: (_) => EditAdScreen(ad: ad)));
-                onRefresh();
+                final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => EditAdScreen(ad: ad)));
+                if (result == true) {
+                  // Pequeño retraso para dejar que el server respira
+                  Future.delayed(const Duration(milliseconds: 300), () => onRefresh());
+                }
               }),
             ],
           ),
