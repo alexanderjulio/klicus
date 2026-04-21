@@ -192,27 +192,38 @@ class _EditAdScreenState extends State<EditAdScreen> {
             const Text('IMÁGENES', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.grey)),
             const SizedBox(height: 12),
             
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 10, mainAxisSpacing: 10),
-              itemCount: _currentImageUrls.length + _newImages.length + 1,
-              itemBuilder: (context, index) {
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: List.generate(_currentImageUrls.length + _newImages.length + 1, (index) {
+                final itemWidth = (MediaQuery.of(context).size.width - 48 - 24) / 3;
                 if (index < _currentImageUrls.length) {
-                  return _ImagePreview(
-                    url: _currentImageUrls[index],
-                    onDelete: () => setState(() => _currentImageUrls.removeAt(index)),
+                  return SizedBox(
+                    width: itemWidth,
+                    height: itemWidth,
+                    child: _ImagePreview(
+                      url: _currentImageUrls[index],
+                      onDelete: () => setState(() => _currentImageUrls.removeAt(index)),
+                    ),
                   );
                 } else if (index < _currentImageUrls.length + _newImages.length) {
                   final newIndex = index - _currentImageUrls.length;
-                  return _FilePreview(
-                    file: _newImages[newIndex],
-                    onDelete: () => setState(() => _newImages.removeAt(newIndex)),
+                  return SizedBox(
+                    width: itemWidth,
+                    height: itemWidth,
+                    child: _FilePreview(
+                      file: _newImages[newIndex],
+                      onDelete: () => setState(() => _newImages.removeAt(newIndex)),
+                    ),
                   );
                 } else {
-                  return _AddButton(onTap: _pickImage);
+                  return SizedBox(
+                    width: itemWidth,
+                    height: itemWidth,
+                    child: _AddButton(onTap: _pickImage),
+                  );
                 }
-              },
+              }),
             ),
             
             const SizedBox(height: 48),
