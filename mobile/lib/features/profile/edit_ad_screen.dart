@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
@@ -196,7 +197,9 @@ class _EditAdScreenState extends State<EditAdScreen> {
               spacing: 12,
               runSpacing: 12,
               children: List.generate(_currentImageUrls.length + _newImages.length + 1, (index) {
-                final itemWidth = (MediaQuery.of(context).size.width - 48 - 24) / 3;
+                final double screenWidth = MediaQuery.of(context).size.width;
+                final double itemWidth = math.max(0.0, (screenWidth - 48 - 24) / 3);
+                
                 if (index < _currentImageUrls.length) {
                   return SizedBox(
                     width: itemWidth,

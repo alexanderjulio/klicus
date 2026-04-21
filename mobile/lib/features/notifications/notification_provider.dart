@@ -18,6 +18,10 @@ class NotificationProvider with ChangeNotifier {
   void startPolling() {
     _pollingTimer?.cancel();
     fetchNotifications(silent: true);
+    _refreshTimer();
+  }
+
+  void _refreshTimer() {
     _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) => fetchNotifications(silent: true));
   }
 
@@ -28,9 +32,11 @@ class NotificationProvider with ChangeNotifier {
 
   /// Fetch user notifications from server
   Future<void> fetchNotifications({bool silent = false}) async {
-    // 1. Safety check: Don't poll if we don't even have a token
+    // 1. Safety check: Check for either Token (User) or GuestID
     final token = await _apiService.getStoredToken();
-    if (token == null) {
+    final guestId = await _apiService.getGuestId();
+
+    if (token == null && guestId == null) {
       if (_pollingTimer != null) stopPolling();
       return;
     }

@@ -120,6 +120,9 @@ class AuthProvider with ChangeNotifier {
         _isAuthenticated = true;
         notifyListeners(); // Immediate update with cached data
 
+        // Background Refresh: Register push token even on persistent sessions
+        PushNotificationService.registerToken();
+
         try {
           // 2. Validate session & update profile in background
           final response = await _apiService.get('/auth/me');

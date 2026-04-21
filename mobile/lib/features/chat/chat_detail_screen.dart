@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -27,10 +28,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   bool _isLoading = true;
   Timer? _pollingTimer;
 
+  String? _currentGuestId;
+
+  final FocusNode _focusNode = FocusNode();
+
   @override
   void initState() {
     super.initState();
     _chatService = ChatService(context.read<ApiService>());
+    _loadGuestId();
     if (widget.conversation == null || widget.conversation['id'] == null) {
       _isLoading = false;
       return;
@@ -39,11 +45,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _startPolling();
   }
 
+  Future<void> _loadGuestId() async {
+    final gid = await context.read<ApiService>().getGuestId();
+    if (mounted) setState(() => _currentGuestId = gid);
+  }
+
   @override
   void dispose() {
     _pollingTimer?.cancel();
     _msgController.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -99,13 +111,32 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final text = _msgController.text.trim();
     if (text.isEmpty) return;
     
+    final currentUser = context.read<AuthProvider>().currentUser;
+    final effectiveId = currentUser?['id']?.toString() ?? _currentGuestId;
+
+    // ⚡ Optimistic Update: Add to UI immediately
+    final tempMsg = {
+      'content': text,
+      'sender_id': effectiveId,
+      'message_type': 'text',
+      'created_at': DateTime.now().toIso8601String(),
+      'is_optimistic': true,
+    };
+
+    setState(() {
+      _messages.add(tempMsg);
+      _scrollToBottom();
+    });
+
     _msgController.clear();
+    _focusNode.requestFocus(); // Re-focus immediately
     try {
       await _chatService.sendMessage(widget.conversation['id'], text);
       _fetchMessages(silent: true);
-      _scrollToBottom();
     } catch (e) {
       debugPrint('Send Error: $e');
+      // If fail, we should probably remove the optimistic message
+      setState(() => _messages.remove(tempMsg));
     }
   }
 
@@ -126,7 +157,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final currentUser = context.read<AuthProvider>().currentUser;
-    final currentUserId = currentUser?['id'].toString();
+    final effectiveId = currentUser?['id']?.toString() ?? _currentGuestId;
     
     const navy = Color(0xFF0E2244);
     const yellow = Color(0xFFE2E000);
@@ -136,10 +167,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       appBar: AppBar(
         title: Column(
           children: [
-            Text(widget.conversation['seller_name'].toString().toUpperCase(), 
-                 style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: navy, fontSize: 14)),
+            Text(
+              (context.read<AuthProvider>().currentUser?['id']?.toString() == widget.conversation['seller_id']?.toString() 
+                ? (widget.conversation['buyer_name'] ?? 'COMPRADOR')
+                : (widget.conversation['seller_name'] ?? 'VENDEDOR')
+              ).toString().toUpperCase(),
+              style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: navy, fontSize: 13, letterSpacing: 0.5)
+            ),
             Text(widget.conversation['ad_title'], 
-                 style: GoogleFonts.inter(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
+                 style: GoogleFonts.inter(color: Colors.grey, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
           ],
         ),
         backgroundColor: Colors.white,
@@ -153,14 +189,49 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               ? const Center(child: CircularProgressIndicator(color: navy))
               : ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
                   itemCount: _messages.isEmpty ? 1 : _messages.length,
                   itemBuilder: (context, index) {
                     if (_messages.isEmpty) return _buildNewConversationState(navy);
                     
                     final msg = _messages[index];
-                    final isMe = msg['sender_id']?.toString() == currentUserId;
-                    return _buildMessageBubble(msg, isMe, navy, yellow);
+                    final isMe = msg['sender_id']?.toString() == effectiveId;
+
+                    // Date Divider Logic
+                    bool showDateDivider = false;
+                    String dateLabel = '';
+                    if (index == 0) {
+                      showDateDivider = true;
+                      dateLabel = _getFormattedDate(msg['created_at']);
+                    } else {
+                      final prevMsg = _messages[index - 1];
+                      final currentDay = _getDayKey(msg['created_at']);
+                      final prevDay = _getDayKey(prevMsg['created_at']);
+                      if (currentDay != prevDay) {
+                        showDateDivider = true;
+                        dateLabel = _getFormattedDate(msg['created_at']);
+                      }
+                    }
+                    
+                    return Column(
+                      children: [
+                        if (showDateDivider) _buildDateDivider(dateLabel, navy),
+                        TweenAnimationBuilder(
+                          duration: const Duration(milliseconds: 400),
+                          tween: Tween<double>(begin: 0.0, end: 1.0),
+                          curve: Curves.easeOut,
+                          builder: (context, value, child) {
+                            return Transform.translate(
+                              offset: Offset(0, 20 * (1 - value)),
+                              child: Opacity(
+                                opacity: value.clamp(0.0, 1.0),
+                                child: _buildMessageBubble(msg, isMe, navy, yellow),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    );
                   },
                 ),
           ),
@@ -172,6 +243,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   Widget _buildMessageBubble(dynamic msg, bool isMe, Color navy, Color yellow) {
     final bool isImage = msg['message_type'] == 'image';
+    final isSeller = widget.conversation['seller_id']?.toString() == _currentGuestId; // Simple check for guest context
+    
+    // Determine the label for the bubble
+    String senderLabel = isMe ? 'TÚ' : (widget.conversation['seller_name'] ?? 'VENDEDOR');
+    if (!isMe) {
+      // If we are looking at someone else's message, determine if it's the seller or buyer
+      // If the current user is the seller, the partner is the buyer
+      final auth = context.read<AuthProvider>();
+      final myId = auth.currentUser?['id']?.toString() ?? _currentGuestId;
+      final amISeller = widget.conversation['seller_id']?.toString() == myId;
+      senderLabel = amISeller ? (widget.conversation['buyer_name'] ?? 'COMPRADOR') : (widget.conversation['seller_name'] ?? 'VENDEDOR');
+    }
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -182,12 +265,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         decoration: BoxDecoration(
           color: isMe ? navy : Colors.white,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(20),
-            topRight: const Radius.circular(20),
-            bottomLeft: Radius.circular(isMe ? 20 : 0),
-            bottomRight: Radius.circular(isMe ? 0 : 20),
+            topLeft: const Radius.circular(24),
+            topRight: const Radius.circular(24),
+            bottomLeft: Radius.circular(isMe ? 24 : 4),
+            bottomRight: Radius.circular(isMe ? 4 : 24),
           ),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+          boxShadow: [
+            BoxShadow(
+              color: isMe ? navy.withOpacity(0.15) : Colors.black.withOpacity(0.04), 
+              blurRadius: 15, 
+              offset: const Offset(0, 5)
+            )
+          ],
         ),
         child: Column(
           crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -212,15 +301,73 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 ),
               ),
             const SizedBox(height: 4),
-            Text(
-              'KLICUS CHAT • ${_formatTime(msg['created_at'])}',
-              style: TextStyle(
-                color: isMe ? Colors.white.withOpacity(0.5) : Colors.grey[400], 
-                fontSize: 8, 
-                fontWeight: FontWeight.bold
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${senderLabel.toUpperCase()} • ${_formatTime(msg['created_at'])}',
+                  style: TextStyle(
+                    color: isMe ? Colors.white.withOpacity(0.5) : Colors.grey[400], 
+                    fontSize: 8, 
+                    fontWeight: FontWeight.bold
+                  ),
+                ),
+                if (isMe && (msg['is_optimistic'] == true)) ...[
+                  const SizedBox(width: 4),
+                  Icon(Icons.access_time_rounded, size: 8, color: Colors.white.withOpacity(0.5)),
+                ],
+              ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  String _getDayKey(dynamic timestamp) {
+    if (timestamp == null) return '';
+    try {
+      final dt = DateTime.parse(timestamp.toString()).toLocal();
+      return '${dt.year}-${dt.month}-${dt.day}';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  String _getFormattedDate(dynamic timestamp) {
+    if (timestamp == null) return '';
+    try {
+      final now = DateTime.now();
+      final dt = DateTime.parse(timestamp.toString()).toLocal();
+      final today = DateTime(now.year, now.month, now.day);
+      final yesterday = today.subtract(const Duration(days: 1));
+      final dateToCheck = DateTime(dt.year, dt.month, dt.day);
+
+      if (dateToCheck == today) return 'HOY';
+      if (dateToCheck == yesterday) return 'AYER';
+      
+      final months = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  Widget _buildDateDivider(String label, Color navy) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: navy.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.outfit(
+          color: navy.withOpacity(0.4),
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.5,
         ),
       ),
     );
@@ -284,10 +431,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 ),
                 child: TextField(
                   controller: _msgController,
+                  focusNode: _focusNode,
                   decoration: const InputDecoration(
                     hintText: 'Escribe un mensaje...',
                     hintStyle: TextStyle(fontSize: 12, color: Colors.grey),
-                    border: InputValue.none,
+                    border: InputBorder.none,
                   ),
                   onSubmitted: (_) => _handleSend(),
                 ),

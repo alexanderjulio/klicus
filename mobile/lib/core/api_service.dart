@@ -43,8 +43,8 @@ class ApiService {
           options.headers['Authorization'] = 'Bearer $token';
         } else {
           // Add Guest identification for unauthenticated users
-          final guestId = await _storage.read(key: 'guest_id');
-          final guestName = await _storage.read(key: 'guest_name');
+          final guestId = await getGuestId();
+          final guestName = await getGuestName();
           if (guestId != null) {
             options.headers['X-Guest-ID'] = guestId;
             if (guestName != null) options.headers['X-Guest-Name'] = guestName;
@@ -109,13 +109,30 @@ class ApiService {
     await _storage.write(key: 'user_data', value: jsonEncode(user));
   }
 
-  Future<void> saveGuestData(String id, String name) async {
-    await _storage.write(key: 'guest_id', value: id);
+  Future<void> saveGuestData(String name) async {
+    final id = await getGuestId();
+    if (id == null) return; // Should not happen with new auto-gen
+    
     await _storage.write(key: 'guest_name', value: name);
+    
+    // Sync with backend to ensure seller sees the name
+    try {
+      await _dio.post('/user/guest-data', data: {'guestId': id, 'name': name});
+      debugPrint('Guest identity synced: ID=$id, Name=$name');
+    } catch (e) {
+      print('Guest sync error: $e');
+    }
   }
 
   Future<String?> getGuestId() async {
-    return await _storage.read(key: 'guest_id');
+    String? id = await _storage.read(key: 'guest_id');
+    if (id == null) {
+      // Auto-generate a unique guest ID if it doesn't exist
+      id = 'gst_${DateTime.now().millisecondsSinceEpoch}';
+      await _storage.write(key: 'guest_id', value: id);
+      debugPrint('New Guest ID generated: $id');
+    }
+    return id;
   }
 
   Future<String?> getGuestName() async {

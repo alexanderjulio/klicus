@@ -23,7 +23,7 @@ export async function GET(req) {
         a.image_urls as ad_images,
         p_seller.full_name as seller_name,
         p_seller.avatar_url as seller_avatar,
-        p_buyer.full_name as buyer_name,
+        COALESCE(p_buyer.full_name, gi_buyer.name, 'Invitado Klicus') as buyer_name,
         p_buyer.avatar_url as buyer_avatar,
         (SELECT COUNT(*) FROM chat_messages m 
          WHERE m.conversation_id = c.id 
@@ -32,7 +32,8 @@ export async function GET(req) {
       FROM chat_conversations c
       JOIN advertisements a ON c.ad_id = a.id
       JOIN profiles p_seller ON c.seller_id = p_seller.id
-      JOIN profiles p_buyer ON c.buyer_id = p_buyer.id
+      LEFT JOIN profiles p_buyer ON c.buyer_id = p_buyer.id
+      LEFT JOIN guest_identities gi_buyer ON c.buyer_id = gi_buyer.id
       WHERE (c.buyer_id = ? OR c.seller_id = ?)
       ORDER BY c.last_message_at DESC
     `, [user.id, user.id, user.id]);

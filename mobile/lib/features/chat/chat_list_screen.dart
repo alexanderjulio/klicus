@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -16,6 +17,8 @@ class ChatListScreen extends StatefulWidget {
 
 class _ChatListScreenState extends State<ChatListScreen> {
   late ChatService _chatService;
+  Timer? _refreshTimer;
+  bool _isSilentRefreshing = false;
   bool _isLoading = true;
   List<dynamic> _conversations = [];
 
@@ -24,21 +27,39 @@ class _ChatListScreenState extends State<ChatListScreen> {
     super.initState();
     _chatService = ChatService(context.read<ApiService>());
     _fetchConversations();
+    _startAutoRefresh();
   }
 
-  Future<void> _fetchConversations() async {
-    setState(() => _isLoading = true);
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startAutoRefresh() {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) => _fetchConversations(silent: true));
+  }
+
+  Future<void> _fetchConversations({bool silent = false}) async {
+    if (silent && _isSilentRefreshing) return;
+    if (!silent) setState(() => _isLoading = true);
+    if (silent) _isSilentRefreshing = true;
+
     try {
       final response = await _chatService.getConversations();
       if (response.data['success'] == true) {
-        setState(() {
-          _conversations = response.data['conversations'];
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _conversations = response.data['conversations'];
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
       debugPrint('Chat List Error: $e');
-      setState(() => _isLoading = false);
+      if (mounted && !silent) setState(() => _isLoading = false);
+    } finally {
+      if (silent) _isSilentRefreshing = false;
     }
   }
 

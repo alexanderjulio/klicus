@@ -9,6 +9,7 @@ import '../../core/api_service.dart';
 import '../../models/ad_model.dart';
 import '../auth/auth_provider.dart';
 import '../profile/edit_ad_screen.dart';
+import '../../core/services/push_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/chat_service.dart';
 import '../../features/chat/chat_detail_screen.dart';
@@ -82,10 +83,12 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
       debugPrint('Guest identity: ID=$existingGuestId, Name=$existingGuestName');
       
       if (existingGuestId == null || existingGuestName == null) {
+        debugPrint('Mostrando Diálogo de Identidad a Invitado...');
         final TextEditingController nameController = TextEditingController();
         final bool? confirmed = await showDialog<bool>(
           context: context,
-          builder: (context) => AlertDialog(
+          barrierDismissible: false, // Force them to choose or cancel
+          builder: (dialogContext) => AlertDialog(
             backgroundColor: navy,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
             title: Text('¡HABLEMOS! 👋', 
@@ -121,12 +124,12 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.pop(context, false),
+                      onPressed: () => Navigator.pop(dialogContext, false),
                       child: Text('CANCELAR', style: GoogleFonts.outfit(color: Colors.white.withOpacity(0.5), fontWeight: FontWeight.bold, fontSize: 11)),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
+                      onPressed: () => Navigator.pop(dialogContext, true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: yellow,
                         foregroundColor: navy,
@@ -143,18 +146,18 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
           ),
         );
 
-        if (confirmed != true || nameController.text.trim().isEmpty) return;
+        debugPrint('Resultado de Diálogo: $confirmed, Nombre: ${nameController.text}');
+        if (confirmed != true || nameController.text.trim().isEmpty) {
+          debugPrint('Chat cancelado por el usuario o nombre vacío.');
+          return;
+        }
         
-        // Generate and Save Guest Data
-        final String guestId = 'gst_${DateTime.now().millisecondsSinceEpoch}';
-        await apiService.saveGuestData(guestId, nameController.text.trim());
+        final name = nameController.text.trim();
+        await apiService.saveGuestData(name);
+        if (!context.mounted) return;
         
-        // Register Push Token for this guest
-        await apiService.post('/user/fcm-token', data: {
-          'token': await apiService.getStoredToken() ?? '', // Or just token if we have it
-          'guestId': guestId,
-          'deviceType': 'mobile',
-        });
+        // Unified Push Registration
+        await PushNotificationService.registerToken();
       }
     }
 
@@ -191,7 +194,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
              ChatDetailScreen(conversation: {
                'id': convId,
                'ad_title': widget.ad.title,
-               'seller_name': 'VENDEDOR ELITE'
+               'seller_name': widget.ad.ownerName ?? 'VENDEDOR ELITE'
              })
            ));
         }
@@ -294,12 +297,14 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 300),
                                 margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8), // More hit area
-                                width: _currentPage == index ? 24 : 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: _currentPage == index ? yellow : Colors.white.withOpacity(0.5),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
+                                  width: _currentPage == index ? 24 : 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: _currentPage == index 
+                                      ? yellow 
+                                      : Colors.white.withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
                               ),
                             );
                           }),

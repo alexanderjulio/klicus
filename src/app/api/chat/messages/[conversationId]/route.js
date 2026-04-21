@@ -108,14 +108,21 @@ export async function POST(req, { params }) {
     // 4. Send Push Notification to Recipient
     const recipientId = user.id === conv[0].buyer_id ? conv[0].seller_id : conv[0].buyer_id;
     
+    // Fetch guest name if sender is a guest
+    let senderName = user.name;
+    if (user.is_guest) {
+      const guests = await query('SELECT name FROM guest_identities WHERE id = ?', [user.id]);
+      if (guests.length > 0) senderName = guests[0].name;
+    }
+
     try {
       await sendPushToUser(recipientId, {
-        title: `Nuevo mensaje de ${user.name}`,
+        title: `Nuevo mensaje de ${senderName}`,
         body: messageType === 'image' ? '📸 Te ha enviado una foto' : textContent,
         data: {
           type: 'chat_message',
           conversationId: conversationId,
-          senderName: user.name
+          senderName: senderName
         }
       });
     } catch (pushError) {
@@ -129,7 +136,7 @@ export async function POST(req, { params }) {
         VALUES (?, ?, ?, ?, ?)
       `, [
         recipientId,
-        `Nuevo mensaje de ${user.name}`,
+        `Nuevo mensaje de ${senderName}`,
         messageType === 'image' ? '📸 Te ha enviado una foto' : textContent,
         'chat_message',
         conversationId

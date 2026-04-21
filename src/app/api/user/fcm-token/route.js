@@ -11,7 +11,7 @@ export async function POST(req) {
     const { token, deviceType, guestId } = await req.json();
     
     if (!token) {
-      return NextResponse.json({ error: 'Token missing' }, { status: 400 });
+      return NextResponse.json({ success: true, message: 'No token provided, skipping registration' });
     }
 
     // 1. Identify requester

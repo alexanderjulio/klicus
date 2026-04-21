@@ -116,11 +116,17 @@ class PushNotificationService {
     if (fcmToken == null) return;
     try {
       final apiService = ApiService();
+      
+      String deviceType = 'web';
+      if (!kIsWeb) {
+        deviceType = Platform.isAndroid ? 'android' : 'ios';
+      }
+
       await apiService.post('/user/fcm-token', data: {
         'token': fcmToken,
-        'deviceType': Platform.isAndroid ? 'android' : 'ios',
+        'deviceType': deviceType,
       });
-      debugPrint('FCM Token registered: $fcmToken');
+      debugPrint('FCM Token registered: $fcmToken ($deviceType)');
     } catch (e) {
       debugPrint('Error registering FCM token: $e');
     }
