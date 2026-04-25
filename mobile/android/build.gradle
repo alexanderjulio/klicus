@@ -1,14 +1,4 @@
-buildscript {
-    ext.kotlin_version = '1.9.0'
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.3.0'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
-}
+// All plugin versions are now managed in settings.gradle for better consistency with Gradle 8+
 
 allprojects {
     repositories {
@@ -18,9 +8,9 @@ allprojects {
 }
 
 ext {
-    compileSdkVersion = 34
+    compileSdkVersion = 35
     minSdkVersion = 21
-    targetSdkVersion = 34
+    targetSdkVersion = 35
 }
 
 // Ensure all subprojects use the same SDK versions
@@ -46,11 +36,36 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
-// Global SDK version enforcement for all Android subprojects
+// Global SDK version enforcement and Dependency Resolution Strategy
 subprojects {
+    project.configurations.all {
+        resolutionStrategy.eachDependency { details ->
+            // Force stable AndroidX Core version
+            if (details.requested.group == 'androidx.core' && 
+                (details.requested.name == 'core' || details.requested.name == 'core-ktx')) {
+                details.useVersion '1.13.1'
+            }
+            
+            // [LEY MARCIAL] Force stable Kotlin version globally to avoid metadata conflicts
+            if (details.requested.group == 'org.jetbrains.kotlin') {
+                details.useVersion '1.9.10'
+            }
+        }
+    }
+
     project.plugins.whenPluginAdded { plugin ->
         if ("com.android.build.gradle.AppPlugin".equals(plugin.class.name) || 
             "com.android.build.gradle.LibraryPlugin".equals(plugin.class.name)) {
+            
+            // Re-inject missing 'flutter' property for legacy plugins if needed
+            if (!project.android.hasProperty('flutter')) {
+                project.android.ext.flutter = [
+                    compileSdkVersion: rootProject.ext.compileSdkVersion,
+                    minSdkVersion: rootProject.ext.minSdkVersion,
+                    targetSdkVersion: rootProject.ext.targetSdkVersion
+                ]
+            }
+
             project.android {
                 compileSdkVersion rootProject.ext.compileSdkVersion
                 defaultConfig {

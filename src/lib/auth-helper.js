@@ -58,11 +58,12 @@ export async function getUniversalSession(req) {
       };
     }
 
-    // 4. Guest Fallback: Look for X-Guest-ID header
+    // 4. Guest Fallback: Look for X-Guest-ID header (Hardened Validation)
     const guestId = req.headers.get('x-guest-id');
     const guestName = req.headers.get('x-guest-name') || 'Invitado Klicus';
     
-    if (guestId) {
+    // Only accept validly prefixed guest IDs to prevent spoofing real user IDs
+    if (guestId && typeof guestId === 'string' && guestId.startsWith('gst_')) {
       return {
         id: guestId,
         name: guestName,

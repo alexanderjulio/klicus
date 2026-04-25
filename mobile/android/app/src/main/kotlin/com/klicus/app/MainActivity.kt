@@ -1,4 +1,4 @@
-package com.example.mobile
+package com.klicus.app
 
 import io.flutter.embedding.android.FlutterActivity
 

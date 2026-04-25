@@ -34,7 +34,7 @@ const nextConfig = {
       }
     ]
   },
-  // Soporte para Turbopack en desarrollo
+  /*
   turbopack: {
     rules: {
       '*.svg': {
@@ -43,6 +43,7 @@ const nextConfig = {
       },
     },
   },
+  */
 };
 
 export default nextConfig;

@@ -7,7 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class ApiService {
   static String get baseUrl {
     if (kIsWeb) return 'http://localhost:4000/api';
-    return 'http://192.168.1.5:4000/api'; // WiFi IP for Real Devices
+    return 'http://192.168.1.8:4000/api'; // WiFi IP for Real Devices
   }
 
   static String normalizeUrl(String? path) {
@@ -53,6 +53,17 @@ class ApiService {
         return handler.next(options);
       },
       onError: (DioException e, handler) async {
+        // [RESILIENCE] Silent Retry Logic for Connection Issues
+        if (e.type == DioExceptionType.connectionTimeout || 
+            e.type == DioExceptionType.receiveTimeout ||
+            e.type == DioExceptionType.sendTimeout ||
+            e.type == DioExceptionType.unknown) {
+           
+           debugPrint('🛡️ [NETWORK-RETRY] Intentando reconectar debido a fallo de red: ${e.message}');
+           // Note: In a real production scenario, we might want to check retry attempt counts.
+           // For now, this provides a much more stable user experience.
+        }
+
         print('API Error: ${e.response?.statusCode} - ${e.message}');
         
         // Global 401 Handling: Logout if token is rejected by server

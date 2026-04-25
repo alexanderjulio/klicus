@@ -18,7 +18,7 @@ export async function GET(req) {
       SELECT * FROM notifications 
       WHERE user_id = ? 
       ORDER BY created_at DESC 
-      LIMIT 20
+      LIMIT 30
     `, [user.id]);
 
     return NextResponse.json({ success: true, notifications });
