@@ -159,7 +159,7 @@ export default function RegisterPage() {
             <div className="flex items-start gap-3 py-2">
               <input type="checkbox" required className="mt-1 accent-primary h-4 w-4" />
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Acepto los <a href="#" className="font-bold text-secondary hover:underline">Términos de Servicio</a> y la <a href="#" className="font-bold text-secondary hover:underline">Política de Privacidad</a> de KLICUS.
+                Acepto los <Link href="/terminos" className="font-bold text-secondary hover:underline">Términos de Servicio</Link> y la <Link href="/privacidad" className="font-bold text-secondary hover:underline">Política de Privacidad</Link> de KLICUS.
               </p>
             </div>
 

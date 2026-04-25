@@ -10,6 +10,7 @@ import { LocationProvider } from '@/context/LocationContext';
 import "@/styles/globals.css";
 import Navigation from "@/components/Navigation";
 import BottomNav from "@/components/BottomNav";
+import Footer from "@/components/Footer";
 import { Providers } from "@/components/Providers";
 
 // Google Fonts for a premium aesthetic
@@ -50,6 +51,7 @@ export default function RootLayout({ children }) {
             <ToastProvider>
               <Navigation />
               {children}
+              <Footer />
               <BottomNav />
             </ToastProvider>
           </LocationProvider>

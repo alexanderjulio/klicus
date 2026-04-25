@@ -17,6 +17,9 @@ async function setup() {
   const schema = fs.readFileSync(schemaPath, 'utf8');
 
   try {
+    console.log('Creando base de datos si no existe...');
+    await connection.query('CREATE DATABASE IF NOT EXISTS klicus_db');
+    await connection.query('USE klicus_db');
     console.log('Ejecutando schema.sql...');
     await connection.query(schema);
     console.log('Base de datos Klicus inicializada con éxito.');

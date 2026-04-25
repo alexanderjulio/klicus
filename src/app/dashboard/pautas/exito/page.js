@@ -9,15 +9,10 @@ import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { manualPaymentConfig } from '@/config/manualPayment';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { cn } from '@/lib/utils';
 
-/**
- * KLICUS Smart Payment Results Page
- * Handles both Mercado Pago success and Manual Consignment Fallback.
- * High-end visual design with copy-to-clipboard functionality.
- */
-export default function PaymentResultsPage() {
+function PaymentResultsContent() {
   const searchParams = useSearchParams();
   const isFallback = searchParams.get('fallback') === 'true';
   const adId = searchParams.get('adId');
@@ -255,5 +250,20 @@ export default function PaymentResultsPage() {
         </p>
       </motion.div>
     </div>
+  );
+}
+
+export default function PaymentResultsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-6">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Cargando transacción...</p>
+        </div>
+      </div>
+    }>
+      <PaymentResultsContent />
+    </Suspense>
   );
 }

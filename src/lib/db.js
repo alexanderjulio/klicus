@@ -25,7 +25,7 @@ const globalKey = Symbol.for('klicus.db.pool.v17');
 if (!global[globalKey]) {
   console.log(`🚀 [DB] Initializing Global Pool (V17-ULTRA-RESILIENT) at ${new Date().toISOString()}`);
   global[globalKey] = mysql.createPool(poolConfig);
-  
+
   // Manejador de errores global para el pool para evitar caídas del proceso
   global[globalKey].on('error', (err) => {
     console.error('⚠️ [DB-POOL] Error inesperado:', err.message);
@@ -47,15 +47,15 @@ export async function query(sql, params) {
     } catch (error) {
       attempts++;
       const isSaturation = error.code === 'ER_CON_COUNT_ERROR' || error.message.includes('Saturated');
-      
+
       if (isSaturation && attempts < maxAttempts) {
         console.warn(`🕒 [DB-V17] Saturación detectada. Re-intento ${attempts}/${maxAttempts}...`);
         await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
         continue;
       }
-      
+
       if (error.code === 'PROTOCOL_CONNECTION_LOST' && attempts < maxAttempts) {
-         continue;
+        continue;
       }
 
       console.error('❌ [DB-V17] Error en consulta:', error.message);
