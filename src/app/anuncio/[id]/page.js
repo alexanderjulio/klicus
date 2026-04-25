@@ -1,5 +1,7 @@
 import { query } from '@/lib/db';
 import { notFound } from 'next/navigation';
+
+export const dynamic = "force-dynamic";
 import { 
   MapPin, Clock, Phone, Smartphone, Mail, Globe, 
   MessageSquare, Truck, Heart, Share2, ArrowLeft, ArrowRight,

@@ -10,6 +10,8 @@ import ProfileHeader from '@/components/ProfileHeader';
 import UserAdsGallery from '@/components/UserAdsGallery';
 import { notFound } from 'next/navigation';
 
+export const dynamic = "force-dynamic";
+
 /**
  * Generates dynamic SEO metadata for each professional profile.
  */

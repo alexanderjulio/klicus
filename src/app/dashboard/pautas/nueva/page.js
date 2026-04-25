@@ -1,6 +1,8 @@
 import { query } from '@/lib/db';
 import AdCreationForm from '@/components/AdCreationForm';
 
+export const dynamic = "force-dynamic";
+
 export default async function NewAdPage() {
   const categories = await query('SELECT * FROM categories WHERE active = TRUE');
 
