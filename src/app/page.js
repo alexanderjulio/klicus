@@ -7,6 +7,8 @@
 import { query } from '@/lib/db';
 import Marketplace from '@/components/Marketplace';
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage({ searchParams }) {
   /**
    * Data Fetching (Server Side)

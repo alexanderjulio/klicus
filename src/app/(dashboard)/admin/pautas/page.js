@@ -2,6 +2,8 @@ import { query } from '@/lib/db';
 import { Check, X, Eye, Clock, MapPin, Tag } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPendingAds() {
   const pendingAds = await query(`
     SELECT a.*, p.business_name, p.full_name, c.name as category_name 

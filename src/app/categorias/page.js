@@ -12,6 +12,8 @@ export const metadata = {
   description: "Explora los sectores comerciales más vibrantes de tu región con KLICUS.",
 };
 
+export const dynamic = "force-dynamic";
+
 // Vertical Grouping Logic (Premium mapping)
 const VERTICALS = [
   {

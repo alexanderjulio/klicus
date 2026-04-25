@@ -11,6 +11,8 @@ export const metadata = {
   description: "Encuentra los mejores descuentos y promociones en tu ciudad.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function OfertasPage() {
   const session = await getServerSession(authOptions);
 
