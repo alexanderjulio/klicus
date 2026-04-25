@@ -6,8 +6,16 @@ import { query } from './db.js';
 // Initialize Firebase Admin
 let serviceAccount;
 try {
-  const jsonPath = join(process.cwd(), 'config', 'firebase-admin.json');
-  serviceAccount = JSON.parse(readFileSync(jsonPath, 'utf8'));
+  const envConfig = process.env.FIREBASE_SERVICE_ACCOUNT;
+  
+  if (envConfig) {
+    // If provided as a stringified JSON in environment variable
+    serviceAccount = JSON.parse(envConfig);
+  } else {
+    // Fallback to local file
+    const jsonPath = join(process.cwd(), 'config', 'firebase-admin.json');
+    serviceAccount = JSON.parse(readFileSync(jsonPath, 'utf8'));
+  }
 
   if (!admin.apps.length) {
     admin.initializeApp({
@@ -16,7 +24,11 @@ try {
     console.log('🔥 [FCM] Firebase Admin SDK Initialized');
   }
 } catch (error) {
-  console.error('❌ [FCM] Error initializing Firebase Admin:', error.message);
+  if (process.env.NODE_ENV === 'production') {
+    console.error('❌ [FCM] Error initializing Firebase Admin:', error.message);
+  } else {
+    console.warn('⚠️ [FCM] Firebase Admin not initialized (optional for dev):', error.message);
+  }
 }
 
 /**
