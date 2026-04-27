@@ -39,12 +39,13 @@ Para que la app funcione en cPanel, necesitamos organizar los archivos antes de 
 2. **Copia** la carpeta `public` (de la raíz de tu proyecto) dentro de `.next/standalone/`.
 3. **Copia** la carpeta `static` (que está en `.next/static`) dentro de `.next/standalone/.next/static`.
    - *Nota: Si la carpeta `.next/static` no existe dentro de standalone, créala manualmente.*
+4. **Nota**: El archivo `server.js` que se encuentra dentro de `.next/standalone` es el motor de tu aplicación para producción. No lo sobrescribas con versiones locales.
 
 ## 4. Carga de Archivos al Servidor
 1. Usa el **Administrador de Archivos** de cPanel o un cliente FTP (como FileZilla).
 2. Crea una carpeta para tu app (ej: `/home/tu_usuario/klicus_app`).
 3. Sube **todo el contenido** de la carpeta `.next/standalone` a esa carpeta en el servidor.
-4. Asegúrate de que el archivo `server.js` esté en la raíz de esa carpeta.
+4. Asegúrate de que el archivo `server.js` (el generado por el build) esté en la raíz de esa carpeta.
 
 ## 5. Configuración de la App de Node.js en cPanel
 1. Ve a **Setup Node.js App** en cPanel.
