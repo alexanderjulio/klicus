@@ -18,8 +18,6 @@ const nextConfig = {
     ],
     unoptimized: true, // Requerido para despliegues estáticos y Firebase URLs dinámicas
   },
-  // Optimización para despliegues en servidores limitados (cPanel/Shared)
-  output: 'standalone',
   // CORS es manejado por src/middleware.js con lista blanca de orígenes (ALLOWED_ORIGINS)
   /*
   turbopack: {

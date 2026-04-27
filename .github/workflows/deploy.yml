@@ -25,16 +25,18 @@ jobs:
       - name: 🏗️ Construyendo aplicación (Build)
         run: npm run build
         env:
-          NEXT_PRIVATE_STANDALONE: true
           BUILD_MODE: true
 
       - name: 📂 Preparando archivos para cPanel
         run: |
           mkdir deploy_package
-          cp -rL .next/standalone/. deploy_package/
+          cp -r .next deploy_package/
+          rm -rf deploy_package/.next/cache
           cp -r public deploy_package/
-          mkdir -p deploy_package/.next/static
-          cp -r .next/static/* deploy_package/.next/static/
+          cp package.json deploy_package/
+          cp package-lock.json deploy_package/
+          cp next.config.js deploy_package/
+          cp server.cjs deploy_package/
 
       - name: 🚀 Subiendo a Conexcol vía FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -50,3 +52,4 @@ jobs:
           exclude: |
             **/.git*
             **/.git*/**
+            **/node_modules/**
