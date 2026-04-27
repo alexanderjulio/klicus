@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * KLICUS Admin Analytics Explorer API
  * Allows filtering global metrics by customer (userId) or specific advertisement (adId).

@@ -2,6 +2,8 @@ import { query } from '@/lib/db';
 import { apiResponse, ApiError } from '@/lib/api-utils';
 import { getUniversalSession } from '@/lib/auth-helper';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req) {
   try {
     const user = await getUniversalSession(req);
