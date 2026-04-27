@@ -39,11 +39,11 @@ jobs:
           cp server.cjs deploy_package/
 
       - name: 🗜️ Comprimir paquete
-        run: tar -czf deploy.tar.gz -C deploy_package .
+        run: cd deploy_package && zip -r ../deploy.zip .
 
-      - name: 📎 Subir deploy.tar.gz como artefacto
+      - name: 📎 Subir deploy.zip como artefacto
         uses: actions/upload-artifact@v4
         with:
           name: deploy-package
-          path: deploy.tar.gz
+          path: deploy.zip
           retention-days: 7
