@@ -8,6 +8,7 @@ import { getUniversalSession } from '@/lib/auth-helper';
  * Supports both Web (Cookies) and Mobile (JWT Authorization Header)
  */
 export async function GET(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     // 1. Get session using the universal helper
     const sessionUser = await getUniversalSession(req);

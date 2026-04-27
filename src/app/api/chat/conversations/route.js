@@ -12,6 +12,7 @@ import { sendPushToUser } from '@/lib/push-notifications';
  */
 
 export async function GET(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const user = await getUniversalSession(req);
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
@@ -47,6 +48,7 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const user = await getUniversalSession(req);
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });

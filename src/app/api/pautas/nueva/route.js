@@ -14,6 +14,7 @@ import crypto from 'crypto';
  * Handles multipart/form-data POST requests to create a new advertisement.
  */
 export async function POST(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     // 1. Session Verification (Universal)
     const user = await getUniversalSession(req);

@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth-util';
 
 export async function GET(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const user = await getAuthenticatedUser(req);
     const userId = user?.id || 'demo-user-123';

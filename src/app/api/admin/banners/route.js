@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server';
  * Admin API to manage promotional banners
  */
 export async function GET(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const user = await getAuthenticatedUser(req);
     if (!user || user.role !== 'admin') {
@@ -21,6 +22,7 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const user = await getAuthenticatedUser(req);
     if (!user || user.role !== 'admin') {
@@ -45,6 +47,7 @@ export async function POST(req) {
 }
 
 export async function PUT(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const user = await getAuthenticatedUser(req);
     if (!user || user.role !== 'admin') {
@@ -75,6 +78,7 @@ export async function PUT(req) {
 }
 
 export async function DELETE(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const user = await getAuthenticatedUser(req);
     if (!user || user.role !== 'admin') {

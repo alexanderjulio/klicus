@@ -7,6 +7,7 @@ import { getAuthenticatedUser } from '@/lib/auth-util';
  * Admin User Search - Search users by name for push notifications
  */
 export async function GET(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const adminUser = await getAuthenticatedUser(req);
     

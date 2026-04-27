@@ -6,6 +6,7 @@ import { processAdImage } from '@/lib/image-service';
 export const dynamic = 'force-dynamic';
 
 export async function PUT(req, { params: paramsPromise }) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const params = await paramsPromise;
     const { id } = await params;
@@ -103,6 +104,7 @@ export async function PUT(req, { params: paramsPromise }) {
 }
 
 export async function GET(req, { params: paramsPromise }) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const params = await paramsPromise;
     const { id } = await params;
@@ -124,6 +126,7 @@ export async function GET(req, { params: paramsPromise }) {
 }
 
 export async function DELETE(req, { params: paramsPromise }) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const params = await paramsPromise;
     const { id } = await params;

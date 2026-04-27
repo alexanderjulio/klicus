@@ -7,6 +7,7 @@ import { getUniversalSession } from '@/lib/auth-helper';
  * GET: Fetch the complete profile of the authenticated user
  */
 export async function GET(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const user = await getUniversalSession(req);
     
@@ -40,6 +41,7 @@ export async function GET(req) {
  * PUT: Update profile information
  */
 export async function PUT(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const user = await getUniversalSession(req);
     

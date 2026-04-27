@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server';
  * Admin API to upload and process images (Banners or Ads)
  */
 export async function POST(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const user = await getAuthenticatedUser(req);
     if (!user || user.role !== 'admin') {

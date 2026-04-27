@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { getPaymentDetails } from '@/lib/mercadopago-service';
 
 export async function POST(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type') || req.body?.type;

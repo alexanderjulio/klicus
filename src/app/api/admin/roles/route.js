@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 export async function GET() {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'admin') {
@@ -19,6 +20,7 @@ export async function GET() {
 }
 
 export async function POST(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'admin') {
@@ -43,6 +45,7 @@ export async function POST(req) {
 }
 
 export async function DELETE(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'admin') {

@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server';
  * POST: Save guest name linked to guestId
  */
 export async function POST(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const { guestId, name } = await req.json();
     

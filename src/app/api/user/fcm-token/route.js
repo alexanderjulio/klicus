@@ -8,6 +8,7 @@ import { registerFCMToken } from '@/lib/push-notifications';
  * POST: Associate an FCM token with a user or guest
  */
 export async function POST(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const { token, deviceType, guestId } = await req.json();
     

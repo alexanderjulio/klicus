@@ -8,6 +8,7 @@ import { SignJWT } from 'jose';
  * Mobile Login API - Returns a JWT for mobile authentication
  */
 export async function POST(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const { email, password } = await req.json();
 

@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
  * GET: Fetch ad detail
  */
 export async function GET(request, { params }) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   const { id } = await params;
 
   try {
@@ -48,6 +49,7 @@ export async function GET(request, { params }) {
  * PUT: Update ad detail (Socio Dashboard / Mobile Edit)
  */
 export async function PUT(request, { params }) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   const { id } = await params;
 
   try {

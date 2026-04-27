@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
  * Query Params: ?range=7|30|total
  */
 export async function GET(req, { params }) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   const { adId } = await params;
   const { searchParams } = new URL(req.url);
   const range = searchParams.get('range') || '30';

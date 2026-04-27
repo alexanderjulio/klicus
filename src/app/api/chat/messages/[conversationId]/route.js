@@ -13,6 +13,7 @@ export const dynamic = 'force-dynamic';
  */
 
 export async function GET(req, { params }) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   const { conversationId } = await params;
   try {
     const user = await getUniversalSession(req);
@@ -51,6 +52,7 @@ export async function GET(req, { params }) {
 }
 
 export async function POST(req, { params }) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   const { conversationId } = await params;
   try {
     const user = await getUniversalSession(req);

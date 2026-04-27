@@ -5,6 +5,7 @@ import { getUniversalSession } from '@/lib/auth-helper';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const user = await getUniversalSession(req);
     let userRole = user?.role?.toLowerCase();

@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 export async function GET() {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const session = await getServerSession(authOptions);
     let userRole = session?.user?.role?.toLowerCase();
@@ -28,6 +29,7 @@ export async function GET() {
 }
 
 export async function POST(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const session = await getServerSession(authOptions);
     let userRole = session?.user?.role?.toLowerCase();

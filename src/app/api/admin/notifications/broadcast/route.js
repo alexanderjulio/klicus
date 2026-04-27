@@ -9,6 +9,7 @@ import admin from '@/lib/firebase-admin';
  * Body: { title, body, targetRole, adId }
  */
 export async function POST(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const adminUser = await getUniversalSession(req);
     if (!adminUser || adminUser.role !== 'admin') {

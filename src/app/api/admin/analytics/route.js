@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
  * Allows filtering global metrics by customer (userId) or specific advertisement (adId).
  */
 export async function GET(req) {
+  if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const session = await getServerSession(authOptions);
     // Security: Admin only
