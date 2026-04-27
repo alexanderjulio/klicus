@@ -28,7 +28,7 @@
     "lucide-react": "latest",
     "mercadopago": "^2.12.0",
     "mysql2": "^3.22.0",
-    "next": "latest",
+    "next": "^15.1.0",
     "next-auth": "^4.24.13",
     "react": "latest",
     "react-dom": "latest",
