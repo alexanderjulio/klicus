@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { query } from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { getUniversalSession } from '@/lib/auth-helper';
@@ -72,3 +73,4 @@ export async function PUT(req) {
     return NextResponse.json({ error: 'Error al actualizar el perfil' }, { status: 500 });
   }
 }
+

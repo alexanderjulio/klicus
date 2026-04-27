@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * KLICUS Ad Creation API
  * Handles the submission of new advertisements, including multi-image processing to WebP.
@@ -114,3 +115,4 @@ export async function POST(req) {
     return ApiError.serverError();
   }
 }
+

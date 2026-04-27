@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { query } from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
@@ -38,3 +39,4 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Error al crear el usuario' }, { status: 500 });
   }
 }
+

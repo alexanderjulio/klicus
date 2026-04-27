@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * KLICUS Public Marketplace API
  * Serves the active advertisements feed for Web and Flutter.
@@ -62,3 +63,4 @@ export async function GET(req) {
     return ApiError.serverError();
   }
 }
+

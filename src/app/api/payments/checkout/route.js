@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { createPaymentPreference } from '@/lib/mercadopago-service';
 import { query } from '@/lib/db';
 import { NextResponse } from 'next/server';
@@ -68,3 +69,4 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Error interno del servidor en el proceso de cobro' }, { status: 500 });
   }
 }
+

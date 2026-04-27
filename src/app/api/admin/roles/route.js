@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { query } from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
@@ -61,3 +62,4 @@ export async function DELETE(req) {
     return NextResponse.json({ error: 'Error al eliminar el rol' }, { status: 500 });
   }
 }
+

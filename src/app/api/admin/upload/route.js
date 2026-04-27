@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getAuthenticatedUser } from '@/lib/auth-util';
 import { processMarketingImage, processAdImage } from '@/lib/image-service';
 import { NextResponse } from 'next/server';
@@ -39,3 +40,4 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Error procesando la subida' }, { status: 500 });
   }
 }
+

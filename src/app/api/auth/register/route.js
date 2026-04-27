@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { query } from '@/lib/db';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
@@ -37,3 +38,4 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
+

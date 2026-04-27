@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { query } from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { getUniversalSession } from '@/lib/auth-helper';
@@ -69,3 +70,4 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Error al enviar notificaciones' }, { status: 500 });
   }
 }
+

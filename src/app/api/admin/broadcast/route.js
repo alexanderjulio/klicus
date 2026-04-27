@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getAuthenticatedUser } from '@/lib/auth-util';
 import { broadcastPush, sendPushToUser } from '@/lib/push-notifications';
 import { NextResponse } from 'next/server';
@@ -48,3 +49,4 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+

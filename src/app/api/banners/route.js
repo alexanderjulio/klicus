@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { query } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
@@ -16,3 +17,4 @@ export async function GET() {
     return NextResponse.json({ success: false, error: 'Error al cargar banners' }, { status: 500 });
   }
 }
+

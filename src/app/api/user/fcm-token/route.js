@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getUniversalSession } from '@/lib/auth-helper';
 import { registerFCMToken } from '@/lib/push-notifications';
@@ -35,3 +36,4 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { processQRImage } from '@/lib/image-service';
 import { getServerSession } from 'next-auth';
@@ -28,3 +29,4 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Error al procesar la imagen' }, { status: 500 });
   }
 }
+

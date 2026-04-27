@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { query } from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { getPaymentDetails } from '@/lib/mercadopago-service';
@@ -88,3 +89,4 @@ export async function POST(req) {
     return NextResponse.json({ success: true });
   }
 }
+

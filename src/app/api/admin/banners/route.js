@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { query } from '@/lib/db';
 import { getAuthenticatedUser } from '@/lib/auth-util';
 import { NextResponse } from 'next/server';
@@ -92,3 +93,4 @@ export async function DELETE(req) {
     return NextResponse.json({ error: 'Error al eliminar banner' }, { status: 500 });
   }
 }
+

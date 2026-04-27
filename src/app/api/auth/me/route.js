@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { query } from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { getUniversalSession } from '@/lib/auth-helper';
@@ -55,3 +56,4 @@ export async function GET(req) {
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
+
