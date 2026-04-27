@@ -23,16 +23,25 @@ let pool;
 const globalKey = Symbol.for('klicus.db.pool.v17');
 
 if (!global[globalKey]) {
-  console.log(`🚀 [DB] Initializing Global Pool (V17-ULTRA-RESILIENT) at ${new Date().toISOString()}`);
-  global[globalKey] = mysql.createPool(poolConfig);
+  const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
+  const hasConfig = process.env.MYSQL_USER || process.env.MYSQL_PASSWORD;
 
-  // Manejador de errores global para el pool para evitar caídas del proceso
-  global[globalKey].on('error', (err) => {
-    console.error('⚠️ [DB-POOL] Error inesperado:', err.message);
-    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-      console.warn('🔄 [DB-POOL] Reestableciendo conexión perdida...');
-    }
-  });
+  if (isBuild && !hasConfig) {
+    console.log('🏗️ [DB] Mocking Pool for Build Phase');
+    global[globalKey] = {
+      execute: async () => [[]],
+      query: async () => [[]],
+      on: () => {},
+      end: async () => {}
+    };
+  } else {
+    console.log(`🚀 [DB] Initializing Global Pool (V17-ULTRA-RESILIENT) at ${new Date().toISOString()}`);
+    global[globalKey] = mysql.createPool(poolConfig);
+
+    global[globalKey].on('error', (err) => {
+      console.error('⚠️ [DB-POOL] Error inesperado:', err.message);
+    });
+  }
 }
 pool = global[globalKey];
 
