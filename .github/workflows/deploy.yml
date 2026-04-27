@@ -3,7 +3,7 @@ name: 🚀 Despliegue Automático a Conexcol
 on:
   push:
     branches:
-      - main  # Se dispara cuando haces push a la rama main
+      - main
 
 jobs:
   build-and-deploy:
@@ -38,18 +38,36 @@ jobs:
           cp next.config.js deploy_package/
           cp server.cjs deploy_package/
 
-      - name: 🚀 Subiendo a Conexcol vía FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - name: 🗜️ Comprimir paquete en un solo archivo
+        run: tar -czf deploy.tar.gz -C deploy_package .
+
+      - name: 📤 Subir a servidor vía SCP
+        uses: appleboy/scp-action@v0.1.7
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          port: 21
-          protocol: ftps
-          local-dir: ./deploy_package/
-          server-dir: ./klicus_prod/
-          state-name: .ftp-deploy-sync-state.json
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 22
+          source: "deploy.tar.gz"
+          target: "~/"
+
+      - name: 🔄 Extraer e instalar en servidor
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 22
+          script: |
+            tar -xzf ~/deploy.tar.gz -C ~/klicus_prod
+            rm ~/deploy.tar.gz
+            cloudlinux-selector install-modules \
+              --json --interpreter nodejs \
+              --user "$USER" \
+              --app-root "$HOME/klicus_prod" \
+              2>/dev/null || true
+            cloudlinux-selector restart \
+              --json --interpreter nodejs \
+              --user "$USER" \
+              --app-root "$HOME/klicus_prod" \
+              2>/dev/null || true
