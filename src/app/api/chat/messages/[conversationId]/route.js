@@ -4,6 +4,8 @@ import { getUniversalSession } from '@/lib/auth-helper';
 import { processAdImage } from '@/lib/image-service';
 import { sendPushToUser } from '@/lib/push-notifications';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Chat Messages API
  * GET: Fetch history for a conversation

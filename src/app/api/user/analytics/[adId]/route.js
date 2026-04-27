@@ -2,6 +2,8 @@ import { query } from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { getUniversalSession } from '@/lib/auth-helper';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET: Fetch aggregated metrics for a specific ad
  * Query Params: ?range=7|30|total

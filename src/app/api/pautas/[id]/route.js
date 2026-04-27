@@ -3,6 +3,8 @@ import { apiResponse, ApiError } from '@/lib/api-utils';
 import { getUniversalSession } from '@/lib/auth-helper';
 import { processAdImage } from '@/lib/image-service';
 
+export const dynamic = 'force-dynamic';
+
 export async function PUT(req, { params: paramsPromise }) {
   try {
     const params = await paramsPromise;

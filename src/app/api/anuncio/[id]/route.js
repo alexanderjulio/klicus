@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { getUniversalSession } from '@/lib/auth-helper';
 import { processAdImage } from '@/lib/image-service';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET: Fetch ad detail
  */

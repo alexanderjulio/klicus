@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * KLICUS Admin Analytics API
  * Returns detailed metrics for ANY advertisement. Regular users cannot access this.
