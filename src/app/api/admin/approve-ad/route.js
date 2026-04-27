@@ -9,10 +9,8 @@ export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);
     
-    // Security: Only admins
     if (!session || session.user.role !== 'admin') {
-      // In pair programming we might bypass this for demo, but keep it for logic
-      // return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     const { adId, status, reason } = await req.json();

@@ -3,6 +3,7 @@ import { query } from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { PROFILE_PLANS } from '@/config/plans';
 
 export async function POST(req) {
   if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -40,16 +41,16 @@ export async function POST(req) {
         return NextResponse.json({ success: true, message: 'Usuario convertido en Anunciante' });
 
       case 'set_plan_gratis':
-        await query('UPDATE profiles SET plan_type = "Gratis" WHERE id = ?', [targetUserId]);
-        return NextResponse.json({ success: true, message: 'Plan Cambiado a Gratis' });
+        await query('UPDATE profiles SET plan_type = ? WHERE id = ?', [PROFILE_PLANS.FREE, targetUserId]);
+        return NextResponse.json({ success: true, message: `Plan Cambiado a ${PROFILE_PLANS.FREE}` });
 
       case 'set_plan_basico':
-        await query('UPDATE profiles SET plan_type = "Básico" WHERE id = ?', [targetUserId]);
-        return NextResponse.json({ success: true, message: 'Plan Cambiado a Básico' });
+        await query('UPDATE profiles SET plan_type = ? WHERE id = ?', [PROFILE_PLANS.BASIC, targetUserId]);
+        return NextResponse.json({ success: true, message: `Plan Cambiado a ${PROFILE_PLANS.BASIC}` });
 
       case 'set_plan_premium':
-        await query('UPDATE profiles SET plan_type = "Premium" WHERE id = ?', [targetUserId]);
-        return NextResponse.json({ success: true, message: 'Plan Cambiado a Premium' });
+        await query('UPDATE profiles SET plan_type = ? WHERE id = ?', [PROFILE_PLANS.PREMIUM, targetUserId]);
+        return NextResponse.json({ success: true, message: `Plan Cambiado a ${PROFILE_PLANS.PREMIUM}` });
 
       case 'delete':
         await query('DELETE FROM profiles WHERE id = ?', [targetUserId]);

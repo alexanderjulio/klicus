@@ -1,23 +1,27 @@
 import admin from 'firebase-admin';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 if (!admin.apps.length) {
   try {
-    // We assume the service account JSON is provided via env or a file in a secure path
-    // For this implementation, we will check for environment variables first
-    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT 
-      ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) 
-      : null;
+    let serviceAccount = null;
+
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      // Production: credentials come from environment variable (JSON string en base64 o raw)
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } else if (process.env.NODE_ENV !== 'production') {
+      // Development only: fallback to local file (gitignored, nunca commiteado)
+      const filePath = join(process.cwd(), 'config', 'firebase-admin.json');
+      serviceAccount = JSON.parse(readFileSync(filePath, 'utf8'));
+    }
 
     if (serviceAccount) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-      console.log('Firebase Admin Initialized from ENV');
+      admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     } else {
-      console.warn('FIREBASE_SERVICE_ACCOUNT not found. Push notifications will fail.');
+      console.warn('FIREBASE_SERVICE_ACCOUNT no configurado. Las notificaciones push no funcionarán.');
     }
   } catch (error) {
-    console.error('Firebase Admin Initialization Error:', error);
+    console.warn('Firebase Admin init error:', error.message);
   }
 }
 

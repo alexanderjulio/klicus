@@ -10,9 +10,8 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
-    // Security: Only admins
     if (!session || session.user.role !== 'admin') {
-      // return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     // Fetch users with counts of their advertisements

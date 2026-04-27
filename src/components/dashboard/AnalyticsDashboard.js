@@ -12,9 +12,7 @@ import {
   MessageCircle, BarChart3, Activity, Check, FileText, ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+// XLSX y jsPDF se cargan dinámicamente al exportar — no se incluyen en el bundle inicial
 
 const COLORS = ['#E2E000', '#1C1C1C', '#9CA3AF'];
 
@@ -35,12 +33,14 @@ export default function AnalyticsDashboard({
 
   // --- EXPORT LOGIC ---
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     try {
       if (!timeSeries || timeSeries.length === 0) {
         showToast('No hay datos para exportar.', 'warning');
         return;
       }
+
+      const XLSX = (await import('xlsx')).default;
 
       const rows = timeSeries.map(day => ({
         'Fecha': day.date,
@@ -50,7 +50,6 @@ export default function AnalyticsDashboard({
         'Contactos WA': day.contacts || 0
       }));
 
-      // Add totals row
       rows.push({
         'Fecha': 'TOTALES',
         'Vistas': safeStats.views,
@@ -63,7 +62,6 @@ export default function AnalyticsDashboard({
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Rendimiento");
 
-      // Auto-size columns
       const max_width = rows.reduce((w, r) => Math.max(w, r.Fecha.length), 10);
       worksheet["!cols"] = [ { wch: max_width }, { wch: 10 }, { wch: 10 }, { wch: 15 } ];
 
@@ -80,13 +78,15 @@ export default function AnalyticsDashboard({
     }
   };
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     try {
       if (!timeSeries || timeSeries.length === 0) {
         showToast('No hay datos para exportar.', 'warning');
         return;
       }
 
+      const { jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
       const doc = new jsPDF();
       
       // Header KLICUS

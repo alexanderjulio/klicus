@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+import { PROFILE_PLANS } from '@/config/plans';
 
 export async function POST(req) {
   if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -31,8 +32,8 @@ export async function POST(req) {
 
     await query(`
       INSERT INTO profiles (id, email, full_name, role, password_hash, plan_type)
-      VALUES (?, ?, ?, ?, ?, 'Gratis')
-    `, [userId, email, full_name, role, hashedPassword]);
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [userId, email, full_name, role, hashedPassword, PROFILE_PLANS.FREE]);
 
     return NextResponse.json({ success: true, message: 'Usuario creado exitosamente' });
   } catch (error) {

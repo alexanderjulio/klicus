@@ -29,21 +29,38 @@ export async function GET(req, { params }) {
       return NextResponse.json({ error: 'No tienes acceso a este chat' }, { status: 403 });
     }
 
-    // 2. Fetch messages
+    // 2. Fetch messages (50 más recientes; usa ?before=<id> para cargar anteriores)
+    const { searchParams } = new URL(req.url);
+    const before = searchParams.get('before'); // ID cursor para paginación hacia atrás
+    const LIMIT = 50;
+
+    const msgParams = [conversationId];
+    let cursorClause = '';
+    if (before) {
+      cursorClause = 'AND id < ?';
+      msgParams.push(before);
+    }
+
     const messages = await query(`
-      SELECT * FROM chat_messages 
-      WHERE conversation_id = ? 
-      ORDER BY created_at ASC
-    `, [conversationId]);
+      SELECT * FROM chat_messages
+      WHERE conversation_id = ? ${cursorClause}
+      ORDER BY created_at DESC
+      LIMIT ${LIMIT}
+    `, msgParams);
+
+    // Devolver en orden cronológico ascendente para el cliente
+    messages.reverse();
+
+    const hasMore = messages.length === LIMIT;
 
     // 3. Mark as read for the receiver
     await query(`
-      UPDATE chat_messages 
-      SET is_read = TRUE 
+      UPDATE chat_messages
+      SET is_read = TRUE
       WHERE conversation_id = ? AND sender_id != ?
     `, [conversationId, user.id]);
 
-    return NextResponse.json({ success: true, messages });
+    return NextResponse.json({ success: true, messages, hasMore });
 
   } catch (error) {
     console.error('Chat Messages GET Error:', error);

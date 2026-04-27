@@ -45,3 +45,13 @@ export const AD_PLANS = {
 export const getPlanById = (id) => AD_PLANS[id] || AD_PLANS.basic;
 
 export const PLAN_LIST = Object.values(AD_PLANS);
+
+/**
+ * Valores canónicos para profiles.plan_type.
+ * Separados de AD_PLANS.id (que corresponde a advertisements.priority_level).
+ */
+export const PROFILE_PLANS = {
+  FREE:    'Gratis',
+  BASIC:   'Básico',
+  PREMIUM: 'Premium',
+};

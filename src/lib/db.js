@@ -51,7 +51,7 @@ export async function query(sql, params) {
 
   while (attempts < maxAttempts) {
     try {
-      const [results] = await pool.execute(sql, params);
+      const [results] = await pool.execute(sql, params ?? []);
       return results;
     } catch (error) {
       attempts++;
@@ -67,7 +67,7 @@ export async function query(sql, params) {
         continue;
       }
 
-      console.error('❌ [DB-V17] Error en consulta:', error.message);
+      console.error('❌ [DB-V17] Error en consulta:', error.message || error.code || 'sin mensaje', '| código:', error.code, '| errno:', error.errno);
       throw error;
     }
   }

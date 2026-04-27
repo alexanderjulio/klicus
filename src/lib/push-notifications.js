@@ -1,35 +1,5 @@
-import admin from 'firebase-admin';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import admin from '@/lib/firebase-admin';
 import { query } from './db.js';
-
-// Initialize Firebase Admin
-let serviceAccount;
-try {
-  const envConfig = process.env.FIREBASE_SERVICE_ACCOUNT;
-  
-  if (envConfig) {
-    // If provided as a stringified JSON in environment variable
-    serviceAccount = JSON.parse(envConfig);
-  } else {
-    // Fallback to local file
-    const jsonPath = join(process.cwd(), 'config', 'firebase-admin.json');
-    serviceAccount = JSON.parse(readFileSync(jsonPath, 'utf8'));
-  }
-
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    console.log('🔥 [FCM] Firebase Admin SDK Initialized');
-  }
-} catch (error) {
-  if (process.env.NODE_ENV === 'production') {
-    console.error('❌ [FCM] Error initializing Firebase Admin:', error.message);
-  } else {
-    console.warn('⚠️ [FCM] Firebase Admin not initialized (optional for dev):', error.message);
-  }
-}
 
 /**
  * Send a push notification to a specific user

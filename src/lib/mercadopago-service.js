@@ -5,16 +5,14 @@
 
 import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 
-// Initialize MP Client with access token from .env
-// Fallback to a generic test token for initial development if not defined
-const accessToken = process.env.MP_ACCESS_TOKEN || 'TEST-6056763421258953-061214-7e8c3e8e8e8e8e8e8e8e8e8e8e8e8e8e-123456789'; // Dummy test token
-
-const client = new MercadoPagoConfig({ 
-  accessToken: accessToken 
-});
-
-if (!process.env.MP_ACCESS_TOKEN) {
-  console.warn('⚠️ Mercado Pago Access Token NOT found in .env. Using sandbox/dummy token.');
+function getClient() {
+  const token = process.env.MP_ACCESS_TOKEN;
+  if (!token) {
+    throw new Error(
+      'MP_ACCESS_TOKEN no está configurado. Agrega la variable de entorno antes de procesar pagos.'
+    );
+  }
+  return new MercadoPagoConfig({ accessToken: token });
 }
 
 /**
@@ -28,7 +26,7 @@ if (!process.env.MP_ACCESS_TOKEN) {
  * @returns {Promise<string>} - The init_point (redirection URL)
  */
 export async function createPaymentPreference({ title, price, quantity = 1, adId, userEmail = 'cliente@klicus.com', includeIVA = false }) {
-  const preference = new Preference(client);
+  const preference = new Preference(getClient());
 
   // Optional 19% VAT (IVA) calculation
   const unitPrice = includeIVA ? price * 1.19 : price;
@@ -70,7 +68,7 @@ export async function createPaymentPreference({ title, price, quantity = 1, adId
  * @returns {Promise<Object>} - The payment data
  */
 export async function getPaymentDetails(paymentId) {
-  const payment = new Payment(client);
+  const payment = new Payment(getClient());
   try {
     const response = await payment.get({ id: paymentId });
     return response;
