@@ -45,5 +45,8 @@ jobs:
           port: 21
           protocol: ftps
           local-dir: ./deploy_package/
-          server-dir: ./klicus_prod/ # Carpeta que coincide con tu App Root en cPanel
+          server-dir: ./klicus_prod/
           state-name: .ftp-deploy-sync-state.json
+          exclude: |
+            **/.git*
+            **/.git*/**
