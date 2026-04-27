@@ -31,11 +31,7 @@ jobs:
       - name: 📂 Preparando archivos para cPanel
         run: |
           mkdir deploy_package
-          cp -rL .next/standalone/* deploy_package/
-          # Patch: Comment out the line that causes 'Cannot find module next'
-          # This line is often redundant in standalone mode and causes issues on shared hosts
-          sed -i "s/require('next')/\/\/ require('next')/g" deploy_package/server.js
-          
+          cp -rL .next/standalone/. deploy_package/
           cp -r public deploy_package/
           mkdir -p deploy_package/.next/static
           cp -r .next/static/* deploy_package/.next/static/

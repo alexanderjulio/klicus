@@ -6,8 +6,12 @@ if (!admin.apps.length) {
   try {
     let serviceAccount = null;
 
-    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-      // Production: credentials come from environment variable (JSON string en base64 o raw)
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+      // Production: JSON codificado en base64 para evitar problemas con saltos de línea en .env
+      const json = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString('utf8');
+      serviceAccount = JSON.parse(json);
+    } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      // Fallback: JSON crudo (solo funciona si el .env escapa correctamente los \n)
       serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     } else if (process.env.NODE_ENV !== 'production') {
       // Development only: fallback to local file (gitignored, nunca commiteado)
