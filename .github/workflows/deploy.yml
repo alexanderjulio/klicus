@@ -29,14 +29,15 @@ jobs:
 
       - name: 📂 Preparando archivos para cPanel
         run: |
-          mkdir deploy_package
-          cp -r .next deploy_package/
-          rm -rf deploy_package/.next/cache
-          cp -r public deploy_package/
-          cp package.json deploy_package/
-          cp package-lock.json deploy_package/
-          cp next.config.js deploy_package/
+          mkdir -p deploy_package/app
+          # Standalone autocontenido en app/ (su node_modules no esta en la raiz)
+          cp -rL .next/standalone/. deploy_package/app/
+          cp -r public deploy_package/app/public/
+          cp -r .next/static deploy_package/app/.next/static
+          # Startup file en la raiz (sin dependencias propias)
           cp server.cjs deploy_package/
+          # package.json minimal para CloudLinux (sin dependencias)
+          echo '{"name":"klicus","version":"0.1.0","private":true}' > deploy_package/package.json
 
       - name: 🗜️ Comprimir paquete
         run: cd deploy_package && zip -r ../deploy.zip .
