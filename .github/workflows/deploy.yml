@@ -32,7 +32,7 @@ jobs:
           mkdir -p deploy_package/app
           # Standalone autocontenido en app/ (su node_modules no esta en la raiz)
           cp -rL .next/standalone/. deploy_package/app/
-          cp -r public deploy_package/app/public/
+          cp -r public/. deploy_package/app/public/
           cp -r .next/static deploy_package/app/.next/static
           # Startup file en la raiz (sin dependencias propias)
           cp server.cjs deploy_package/
