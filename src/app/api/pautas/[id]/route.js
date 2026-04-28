@@ -56,8 +56,8 @@ export async function PUT(req, { params: paramsPromise }) {
     for (const file of newFiles) {
       if (file.size > 0 && finalImageUrls.length < maxAllowed) {
         const buffer = Buffer.from(await file.arrayBuffer());
-        const url = await processAdImage(buffer, file.name || 'image.webp');
-        finalImageUrls.push(url);
+        const result = await processAdImage(buffer, file.name || 'image.webp');
+        finalImageUrls.push(result.url);
       }
     }
 

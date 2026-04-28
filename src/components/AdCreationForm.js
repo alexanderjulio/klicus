@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { 
+import {
   Camera, Send, ShieldCheck, CheckCircle2, MapPin, Tag, ArrowRight, ArrowLeft,
-  Clock, Phone, Smartphone, Mail, Globe, MessageSquare, Truck, Info, PlusCircle
+  Clock, Phone, Smartphone, Mail, Globe, MessageSquare, Truck, Info, PlusCircle,
+  Share2, DollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Button from './ui/Button';
@@ -73,6 +74,7 @@ export default function AdCreationForm({ categories, user, planLimit }) {
     facebookUrl: '',
     instagramUrl: '',
     deliveryInfo: '',
+    priceRange: '',
     priority: 'basic',
     includeIVA: false,
     isOffer: false
@@ -95,6 +97,12 @@ export default function AdCreationForm({ categories, user, planLimit }) {
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
+
+    if (!formData.title.trim() || !formData.description.trim() || !formData.categoryId || !formData.location.trim()) {
+      showToast('Completa los campos obligatorios: nombre, categoría, ciudad y descripción.', 'error');
+      return;
+    }
+
     setLoading(true);
 
     const data = new FormData();
@@ -107,9 +115,9 @@ export default function AdCreationForm({ categories, user, planLimit }) {
         body: data
       });
       const result = await res.json();
-      
+
       if (result.success) {
-        const adId = result.adId;
+        const adId = result.data?.adId;
         if (selectedPlan.price > 0) {
           try {
             const checkoutRes = await fetch('/api/payments/checkout', {
@@ -242,7 +250,7 @@ export default function AdCreationForm({ categories, user, planLimit }) {
                   <input 
                     type="text" required value={formData.title}
                     onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    placeholder="Ej: Clínica Dental Smile" 
+                    placeholder="Ej: CompuByte Tecnología" 
                     className="w-full bg-muted/20 border border-border rounded-2xl px-5 py-4 outline-none focus:border-primary transition-all font-bold"
                   />
                 </div>
@@ -332,6 +340,23 @@ export default function AdCreationForm({ categories, user, planLimit }) {
                   <textarea rows="4" required value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Describe qué ofreces..." className="w-full bg-muted/20 border border-border rounded-2xl px-5 py-4 outline-none focus:border-primary transition-all font-medium resize-none shadow-inner" />
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-secondary uppercase tracking-widest opacity-60">Rango de Precios</label>
+                    <div className="relative">
+                      <input type="text" value={formData.priceRange} onChange={(e) => setFormData({...formData, priceRange: e.target.value})} placeholder="Ej: $50.000 - $200.000" className="w-full bg-muted/20 border border-border rounded-2xl px-5 py-4 pl-12 outline-none focus:border-primary transition-all font-bold" />
+                      <DollarSign size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-secondary uppercase tracking-widest opacity-60">Información de Entrega</label>
+                    <div className="relative">
+                      <input type="text" value={formData.deliveryInfo} onChange={(e) => setFormData({...formData, deliveryInfo: e.target.value})} placeholder="Ej: Domicilios a toda la ciudad" className="w-full bg-muted/20 border border-border rounded-2xl px-5 py-4 pl-12 outline-none focus:border-primary transition-all font-bold" />
+                      <Truck size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary" />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-4">
                   <label className="text-xs font-black text-secondary uppercase tracking-widest opacity-60">Fotos del Negocio</label>
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
@@ -384,15 +409,22 @@ export default function AdCreationForm({ categories, user, planLimit }) {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-secondary uppercase tracking-widest opacity-60">Instagram</label>
+                    <label className="text-xs font-black text-secondary uppercase tracking-widest opacity-60">Teléfono Fijo</label>
                     <div className="relative">
-                      <input type="text" value={formData.instagramUrl} onChange={(e) => setFormData({...formData, instagramUrl: e.target.value})} placeholder="@tunegocio" className="w-full bg-muted/20 border border-border rounded-2xl px-5 py-4 pl-12 outline-none focus:border-pink-500 font-bold" />
-                      <Camera size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-pink-600" />
+                      <input type="text" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} placeholder="7 456 7890" className="w-full bg-muted/20 border border-border rounded-2xl px-5 py-4 pl-12 outline-none focus:border-primary font-bold" />
+                      <Phone size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary" />
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-secondary uppercase tracking-widest opacity-60">Correo Electrónico</label>
+                    <div className="relative">
+                      <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} placeholder="contacto@tunegocio.com" className="w-full bg-muted/20 border border-border rounded-2xl px-5 py-4 pl-12 outline-none focus:border-primary font-bold" />
+                      <Mail size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary" />
+                    </div>
+                  </div>
                   <div className="space-y-2">
                      <label className="text-xs font-black text-secondary uppercase tracking-widest opacity-60">Sitio Web</label>
                      <div className="relative">
@@ -400,12 +432,30 @@ export default function AdCreationForm({ categories, user, planLimit }) {
                         <Globe size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary" />
                      </div>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                     <label className="text-xs font-black text-secondary uppercase tracking-widest opacity-60">Plan Seleccionado</label>
-                     <div className="w-full bg-secondary text-white rounded-2xl px-5 py-4 flex items-center justify-between font-black italic shadow-lg">
-                        <span>PLAN {selectedPlan.name.toUpperCase()}</span>
-                        <span>{selectedPlan.priceLabel}</span>
-                     </div>
+                    <label className="text-xs font-black text-secondary uppercase tracking-widest opacity-60">Instagram</label>
+                    <div className="relative">
+                      <input type="text" value={formData.instagramUrl} onChange={(e) => setFormData({...formData, instagramUrl: e.target.value})} placeholder="@tunegocio" className="w-full bg-muted/20 border border-border rounded-2xl px-5 py-4 pl-12 outline-none focus:border-pink-500 font-bold" />
+                      <Camera size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-pink-600" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-secondary uppercase tracking-widest opacity-60">Facebook</label>
+                    <div className="relative">
+                      <input type="text" value={formData.facebookUrl} onChange={(e) => setFormData({...formData, facebookUrl: e.target.value})} placeholder="facebook.com/tunegocio" className="w-full bg-muted/20 border border-border rounded-2xl px-5 py-4 pl-12 outline-none focus:border-blue-500 font-bold" />
+                      <Share2 size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-600" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-secondary uppercase tracking-widest opacity-60">Plan Seleccionado</label>
+                  <div className="w-full bg-secondary text-white rounded-2xl px-5 py-4 flex items-center justify-between font-black italic shadow-lg">
+                    <span>PLAN {selectedPlan.name.toUpperCase()}</span>
+                    <span>{selectedPlan.priceLabel}</span>
                   </div>
                 </div>
 

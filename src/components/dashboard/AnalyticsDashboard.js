@@ -24,7 +24,7 @@ export default function AnalyticsDashboard({
 }) {
   if (!data) return null;
 
-  const { timeSeries, devices, totals, adTitle } = data;
+  const { timeSeries = [], devices = [], totals, adTitle } = data;
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [isExportOpen, setIsExportOpen] = useState(false);
 
@@ -413,17 +413,21 @@ export default function AnalyticsDashboard({
               </PieChart>
             </ResponsiveContainer>
             
-            <div className="w-full space-y-4 mt-8">
-              {devices.map((d, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                    <span className="text-[10px] font-black uppercase text-secondary dark:text-white tracking-widest">{d.name}</span>
+            {devices.length === 0 ? (
+              <p className="text-[10px] font-bold text-muted-foreground text-center mt-4">Sin datos de dispositivos aún.</p>
+            ) : (
+              <div className="w-full space-y-4 mt-8">
+                {devices.map((d, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                      <span className="text-[10px] font-black uppercase text-secondary dark:text-white tracking-widest">{d.name}</span>
+                    </div>
+                    <span className="text-xs font-black text-secondary dark:text-white">{d.value}</span>
                   </div>
-                  <span className="text-xs font-black text-secondary dark:text-white">{d.value}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

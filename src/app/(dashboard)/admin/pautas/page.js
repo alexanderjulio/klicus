@@ -1,6 +1,7 @@
 import { query } from '@/lib/db';
-import { Check, X, Eye, Clock, MapPin, Tag } from 'lucide-react';
+import { Check, Eye, Clock, MapPin, Tag } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import AdActionButtons from '@/components/admin/AdActionButtons';
 
 export const dynamic = "force-dynamic";
 
@@ -65,12 +66,7 @@ export default async function AdminPendingAds() {
                   <Eye size={18} /> Ver Detalles
                 </Button>
                 <div className="w-px h-8 bg-border hidden lg:block mx-1" />
-                <button className="h-12 w-12 flex items-center justify-center rounded-2xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors shadow-sm" title="Rechazar">
-                  <X size={20} strokeWidth={3} />
-                </button>
-                <button className="h-12 px-8 flex items-center justify-center rounded-2xl bg-emerald-500 text-white font-black shadow-lg shadow-emerald-500/20 hover:opacity-90 transition-all gap-2" title="Aprobar">
-                  <Check size={20} strokeWidth={3} /> Activar Pauta
-                </button>
+                <AdActionButtons adId={ad.id} adTitle={ad.title} />
               </div>
             </div>
           ))}

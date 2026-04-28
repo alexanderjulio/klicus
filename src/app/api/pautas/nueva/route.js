@@ -8,6 +8,7 @@ import { apiResponse, ApiError } from '@/lib/api-utils';
 import { query } from '@/lib/db';
 import { processAdImage } from '@/lib/image-service';
 import { getUniversalSession } from '@/lib/auth-helper';
+import { getPlanById } from '@/config/plans';
 import crypto from 'crypto';
 
 /**
@@ -48,10 +49,9 @@ export async function POST(req) {
       return ApiError.badRequest(`El plan ${requestedPriority.toUpperCase()} solo permite ${maxAllowedImages} foto(s). Has enviado ${files.length}.`);
     }
 
-    // 2.6 Dynamic Expiration Logic from DB
-    const planData = await query('SELECT duration_days FROM plans WHERE plan_name = ?', [requestedPriority]);
-    const durationDays = planData[0]?.duration_days || 30;
-
+    // 2.6 Expiration from plans config
+    const plan = getPlanById(requestedPriority);
+    const durationDays = plan.duration || 365;
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + durationDays);
 
@@ -61,8 +61,8 @@ export async function POST(req) {
     for (const file of files.slice(0, maxAllowedImages)) {
       if (file.size > 0) {
         const buffer = Buffer.from(await file.arrayBuffer());
-        const url = await processAdImage(buffer, file.name || 'image.webp');
-        imageUrls.push(url);
+        const result = await processAdImage(buffer, file.name || 'image.webp');
+        imageUrls.push(result.url);
       }
     }
 

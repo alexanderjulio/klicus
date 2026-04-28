@@ -10,8 +10,8 @@ export const AD_PLANS = {
     price: 0,
     priceLabel: 'Gratis',
     photoLimit: 1,
-    duration: 15,
-    features: ['1 Foto de perfil', 'Visibilidad estándar', 'Vigencia 15 días'],
+    duration: 365,
+    features: ['1 Foto de perfil', 'Visibilidad estándar', 'Vigencia 1 año'],
     color: 'bg-white',
     text: 'text-secondary',
     badge: null
@@ -22,8 +22,8 @@ export const AD_PLANS = {
     price: 45000,
     priceLabel: '$45.000',
     photoLimit: 3,
-    duration: 30,
-    features: ['3 Fotos galería', 'Visibilidad prioritaria', 'Vigencia 30 días', 'Etiqueta Pro'],
+    duration: 365,
+    features: ['3 Fotos galería', 'Visibilidad prioritaria', 'Vigencia 1 año', 'Etiqueta Pro'],
     color: 'bg-white',
     text: 'text-secondary',
     badge: 'Económico'
@@ -34,8 +34,8 @@ export const AD_PLANS = {
     price: 99000,
     priceLabel: '$99.000',
     photoLimit: 5,
-    duration: 0, // Unilimited
-    features: ['5 Fotos HD', 'Máxima visibilidad Home', 'Vigencia ilimitada', 'Resaltado oro', 'Soporte 24/7'],
+    duration: 365,
+    features: ['5 Fotos HD', 'Máxima visibilidad Home', 'Vigencia 1 año', 'Resaltado oro', 'Soporte 24/7'],
     color: 'bg-secondary',
     text: 'text-white',
     badge: 'Recomendado'

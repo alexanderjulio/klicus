@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Users, FileText, CreditCard, Activity, 
+import {
+  Users, FileText, CreditCard, Activity,
   TrendingUp, ArrowUpRight, Check, X, Clock,
-  LayoutDashboard, Settings, LogOut, Bell
+  LayoutDashboard, Settings, LogOut, Bell, ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminChart from '@/components/admin/AdminChart';
@@ -23,7 +23,7 @@ export default function AdminDashboard() {
     try {
       const res = await fetch('/api/admin/stats');
       const json = await res.json();
-      setData(json);
+      setData(json.data);
     } catch (error) {
       console.error('Failed to fetch admin stats:', error);
     } finally {

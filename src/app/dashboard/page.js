@@ -334,7 +334,7 @@ export default function AdvertiserDashboard() {
                   data?.ads?.filter(ad => ad.priority_level !== 'diamond').map(ad => (
                     <div key={ad.id} className="p-6 rounded-3xl bg-zinc-50 border border-zinc-100 flex items-center gap-6 group hover:bg-white hover:shadow-xl transition-all">
                        <div className="w-20 h-20 rounded-2xl overflow-hidden bg-zinc-200">
-                         <img src={ad.image_urls[0]} className="w-full h-full object-cover" />
+                         {ad.image_urls[0] && <img src={ad.image_urls[0]} className="w-full h-full object-cover" />}
                        </div>
                        <div className="flex-1">
                           <h4 className="text-lg font-black text-secondary italic leading-tight mb-1">{ad.title}</h4>

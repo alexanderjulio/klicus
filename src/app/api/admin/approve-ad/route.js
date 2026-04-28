@@ -37,10 +37,7 @@ export async function POST(req) {
       
       const { AD_PLANS } = await import('@/config/plans');
       const planConfig = AD_PLANS[priority] || AD_PLANS.basic;
-      let durationDays = planConfig.duration || 30;
-      
-      // Specifically for Diamond (unlimited), MySQL INTERVAL needs a number
-      if (priority === 'diamond') durationDays = 3650; 
+      const durationDays = planConfig.duration || 365;
 
       await query(`
         UPDATE advertisements 

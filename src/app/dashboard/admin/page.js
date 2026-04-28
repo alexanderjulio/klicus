@@ -66,7 +66,7 @@ export default function AdminDashboard() {
     try {
       const res = await fetch('/api/admin/stats');
       const result = await res.json();
-      setData(result);
+      setData(result.data);
     } catch (error) {
       console.error('Fetch Stats Error:', error);
       showToast('Error al cargar estadísticas', 'error');
@@ -474,25 +474,44 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] dark:bg-zinc-950 transition-colors duration-500">
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-border/50 dark:border-white/5 py-4 px-8 flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="text-xl font-black italic tracking-tighter text-secondary dark:text-white group">
-            KLICUS<span className="text-primary group-hover:animate-pulse">.</span>ADMIN
+      <nav className="fixed top-0 left-0 right-0 z-[60] bg-[#0E2244] border-b border-white/10 py-3 px-6 flex items-center justify-between shadow-2xl">
+        <div className="flex items-center gap-6">
+          <Link href="/" className="text-lg font-black italic tracking-tighter text-white shrink-0">
+            KLICUS<span className="text-primary">.</span>ADMIN
           </Link>
-          <div className="hidden lg:flex items-center gap-1 bg-muted/30 dark:bg-white/5 p-1 rounded-xl">
-             <button onClick={() => setActiveTab('overview')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest", activeTab === 'overview' ? "bg-white dark:bg-zinc-800 text-secondary dark:text-white shadow-sm" : "text-muted-foreground hover:text-secondary dark:hover:text-white")}>General</button>
-             <button onClick={() => setActiveTab('pautas')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest", activeTab === 'pautas' ? "bg-white dark:bg-zinc-800 text-secondary dark:text-white shadow-sm" : "text-muted-foreground hover:text-secondary dark:hover:text-white")}>Pautas</button>
-             <button onClick={() => setActiveTab('metrics')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest", activeTab === 'metrics' ? "bg-white dark:bg-zinc-800 text-secondary dark:text-white shadow-sm" : "text-muted-foreground hover:text-secondary dark:hover:text-white")}>Métricas</button>
-             <button onClick={() => setActiveTab('mensajeria')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest", activeTab === 'mensajeria' ? "bg-white dark:bg-zinc-800 text-secondary dark:text-white shadow-sm" : "text-muted-foreground hover:text-secondary dark:hover:text-white")}>Mensajería</button>
-             <button onClick={() => setActiveTab('usuarios')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest", activeTab === 'usuarios' || activeTab === 'roles' ? "bg-white dark:bg-zinc-800 text-secondary dark:text-white shadow-sm" : "text-muted-foreground hover:text-secondary dark:hover:text-white")}>Usuarios</button>
-             <button onClick={() => setActiveTab('config')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest", activeTab === 'config' ? "bg-white dark:bg-zinc-800 text-secondary dark:text-white shadow-sm" : "text-muted-foreground hover:text-secondary dark:hover:text-white")}>Ajustes</button>
-             <button onClick={() => setActiveTab('perfil')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest", activeTab === 'perfil' ? "bg-white dark:bg-zinc-800 text-secondary dark:text-white shadow-sm" : "text-muted-foreground hover:text-secondary dark:hover:text-white")}>Yo</button>
+          <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl overflow-x-auto no-scrollbar">
+            {[
+              { key: 'overview',   label: 'General' },
+              { key: 'pautas',     label: 'Pautas' },
+              { key: 'metrics',    label: 'Métricas' },
+              { key: 'mensajeria', label: 'Mensajería' },
+              { key: 'usuarios',   label: 'Usuarios' },
+              { key: 'config',     label: 'Ajustes' },
+              { key: 'perfil',     label: 'Yo' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={cn(
+                  "px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest whitespace-nowrap",
+                  activeTab === key || (key === 'usuarios' && activeTab === 'roles')
+                    ? "bg-primary text-secondary shadow-sm"
+                    : "text-white/50 hover:text-white"
+                )}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 shrink-0">
           <NotificationCenter />
-          <button onClick={() => signOut({ callbackUrl: '/' })} className="p-2.5 rounded-full bg-red-500/10 text-red-500 transition-all hover:bg-red-500 hover:text-white group"><LogOut size={20} /></button>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-amber-300 border-2 border-white dark:border-zinc-800 shadow-lg flex items-center justify-center text-secondary font-black text-xs uppercase">{session?.user?.name?.charAt(0) || 'A'}</div>
+          <button onClick={() => signOut({ callbackUrl: '/' })} className="p-2 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all" title="Cerrar sesión">
+            <LogOut size={18} />
+          </button>
+          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-amber-300 flex items-center justify-center text-secondary font-black text-xs uppercase shadow-lg">
+            {session?.user?.name?.charAt(0) || 'A'}
+          </div>
         </div>
       </nav>
 
