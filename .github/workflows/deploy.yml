@@ -1,4 +1,4 @@
-name: 🚀 Build y empaquetado para Conexcol
+name: 🚀 Build y Deploy Automático — KLICUS
 
 on:
   push:
@@ -6,45 +6,87 @@ on:
       - main
 
 jobs:
-  build-and-package:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🚚 Obteniendo código
+      - name: 🚚 Obtener código
         uses: actions/checkout@v4
 
-      - name: 🏗️ Configurando Node.js
+      - name: 🏗️ Configurar Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: 📦 Instalando dependencias
+      - name: 📦 Instalar dependencias
         run: npm install
 
-      - name: 🏗️ Construyendo aplicación (Build)
+      - name: 🏗️ Build de producción
         run: npm run build
         env:
           BUILD_MODE: true
 
-      - name: 📂 Preparando archivos para cPanel
+      - name: 📂 Preparar paquete de deploy
         run: |
           mkdir -p deploy_package/app
-          # Standalone autocontenido en app/ (su node_modules no esta en la raiz)
           cp -rL .next/standalone/. deploy_package/app/
           cp -r public/. deploy_package/app/public/
           cp -r .next/static deploy_package/app/.next/static
-          # Startup file en la raiz (sin dependencias propias)
           cp server.cjs deploy_package/
-          # package.json minimal para CloudLinux (sin dependencias)
           echo '{"name":"klicus","version":"0.1.0","private":true}' > deploy_package/package.json
 
       - name: 🗜️ Comprimir paquete
         run: cd deploy_package && zip -r ../deploy.zip .
 
-      - name: 📎 Subir deploy.zip como artefacto
+      - name: 📎 Guardar artefacto (respaldo 7 días)
         uses: actions/upload-artifact@v4
         with:
           name: deploy-package
           path: deploy.zip
           retention-days: 7
+
+      - name: 📤 Subir deploy.zip al servidor
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "deploy.zip"
+          target: "~/"
+          timeout: 120s
+          command_timeout: 30m
+
+      - name: 🔄 Activar deploy en servidor
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          timeout: 60s
+          command_timeout: 10m
+          script: |
+            set -e
+
+            # 1. Guardar .env antes de limpiar
+            [ -f ~/klicus_prod/.env ] && cp ~/klicus_prod/.env /tmp/.env.bak
+
+            # 2. Eliminar archivos anteriores (primer nivel, recursivo)
+            find ~/klicus_prod -mindepth 1 -maxdepth 1 -not -name '.env' -exec rm -rf {} +
+
+            # 3. Extraer nuevo paquete
+            unzip -q ~/deploy.zip -d ~/klicus_prod/
+
+            # 4. Restaurar .env si se eliminó accidentalmente
+            [ -f /tmp/.env.bak ] && [ ! -f ~/klicus_prod/.env ] && cp /tmp/.env.bak ~/klicus_prod/.env
+
+            # 5. Limpiar archivos temporales
+            rm -f ~/deploy.zip /tmp/.env.bak
+
+            # 6. Reiniciar app (Phusion Passenger — estándar cPanel)
+            mkdir -p ~/klicus_prod/tmp
+            touch ~/klicus_prod/tmp/restart.txt
+
+            echo "✅ Deploy completado exitosamente"
