@@ -19,6 +19,10 @@ const nextConfig = {
     unoptimized: true, // Requerido para despliegues estáticos y Firebase URLs dinámicas
   },
   output: 'standalone',
+  experimental: {
+    // Limit parallel workers for shared hosting (CloudLinux nproc limits)
+    cpus: 1,
+  },
   // CORS es manejado por src/middleware.js con lista blanca de orígenes (ALLOWED_ORIGINS)
   /*
   turbopack: {
