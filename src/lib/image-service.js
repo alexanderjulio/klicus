@@ -1,113 +1,107 @@
 /**
  * KLICUS Image Service
- * Optimized image handling for ad banners and galleries using WebP tech.
+ * Optimized image handling using WebP + Firebase Storage in production.
+ * Falls back to local disk when FIREBASE_STORAGE_BUCKET is not set (dev).
  */
 
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
+import admin from './firebase-admin.js';
 
-// Local directory for ad image storage
-const UPLOAD_DIR = path.join(process.cwd(), 'public/uploads/ads');
+// ─── Firebase Storage helper ──────────────────────────────────────────────────
+
+async function uploadToFirebase(buffer, storagePath, contentType = 'image/webp') {
+  const bucket = admin.storage().bucket(process.env.FIREBASE_STORAGE_BUCKET);
+  const file = bucket.file(storagePath);
+  await file.save(buffer, { metadata: { contentType }, resumable: false });
+  const encoded = encodeURIComponent(storagePath);
+  return `https://firebasestorage.googleapis.com/v0/b/${process.env.FIREBASE_STORAGE_BUCKET}/o/${encoded}?alt=media`;
+}
+
+const useFirebase = () => !!process.env.FIREBASE_STORAGE_BUCKET;
+
+// ─── Local disk helper ────────────────────────────────────────────────────────
+
+const LOCAL_BASE = path.join(process.cwd(), 'public/uploads');
+
+async function saveLocally(buffer, subDir, fileName) {
+  const dir = path.join(LOCAL_BASE, subDir);
+  await fs.mkdir(dir, { recursive: true });
+  const outputPath = path.join(dir, fileName);
+  await fs.writeFile(outputPath, buffer);
+  return `/uploads/${subDir}/${fileName}`;
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Processes a raw buffer, converts to WebP, and saves locally.
- * Returns metadata for reference.
+ * Process ad image and save to Firebase Storage (prod) or local disk (dev).
  */
 export async function processAdImage(fileBuffer, fileName) {
   try {
-    await fs.mkdir(UPLOAD_DIR, { recursive: true });
-
     const newFileName = `${path.parse(fileName).name}-${Date.now()}.webp`;
-    const outputPath = path.join(UPLOAD_DIR, newFileName);
 
-    const info = await sharp(fileBuffer)
+    const buffer = await sharp(fileBuffer)
       .rotate()
-      .resize(1200, 800, {
-        fit: 'inside',
-        withoutEnlargement: true
-      })
+      .resize(1200, 800, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 80, effort: 6 })
-      .toFile(outputPath);
+      .toBuffer();
 
-    return {
-      url: `/uploads/ads/${newFileName}`,
-      width: info.width,
-      height: info.height,
-      size: info.size // in bytes
-    };
+    const url = useFirebase()
+      ? await uploadToFirebase(buffer, `ads/${newFileName}`)
+      : await saveLocally(buffer, 'ads', newFileName);
+
+    return { url };
   } catch (error) {
     console.error('Error procesando imagen de anuncio:', error);
     throw new Error('No se pudo procesar la imagen');
   }
 }
 
-const MARKETING_DIR = path.join(process.cwd(), 'public/uploads/marketing');
-
 /**
- * Optimized processing for banner/promotional images.
+ * Process marketing/banner image.
  */
 export async function processMarketingImage(fileBuffer, fileName) {
   try {
-    await fs.mkdir(MARKETING_DIR, { recursive: true });
-
     const newFileName = `mkt-${path.parse(fileName).name}-${Date.now()}.webp`;
-    const outputPath = path.join(MARKETING_DIR, newFileName);
 
-    const info = await sharp(fileBuffer)
+    const buffer = await sharp(fileBuffer)
       .rotate()
-      .resize(1200, 600, { // Banners are wider
-        fit: 'cover',
-        position: 'center'
-      })
+      .resize(1200, 600, { fit: 'cover', position: 'center' })
       .webp({ quality: 85, effort: 6 })
-      .toFile(outputPath);
+      .toBuffer();
 
-    return {
-      url: `/uploads/marketing/${newFileName}`,
-      width: info.width,
-      height: info.height,
-      size: info.size
-    };
+    const url = useFirebase()
+      ? await uploadToFirebase(buffer, `marketing/${newFileName}`)
+      : await saveLocally(buffer, 'marketing', newFileName);
+
+    return { url };
   } catch (error) {
     console.error('Error procesando imagen de marketing:', error);
     throw new Error('No se pudo procesar la imagen de marketing');
   }
 }
-// Local directory for QR code storage
-const QR_DIR = path.join(process.cwd(), 'public/uploads/qr');
 
 /**
- * Processes a QR image buffer, converts to WebP with high contrast, and saves locally.
- * @param {Buffer} fileBuffer - The image file buffer from form submission
- * @param {string} fileName - Original file name for reference
- * @returns {Promise<string>} - The public URL to access the QR image
+ * Process QR image.
  */
 export async function processQRImage(fileBuffer, fileName) {
   try {
-    // Ensure directory exists
-    await fs.mkdir(QR_DIR, { recursive: true });
-
-    // Generate unique optimized filename
     const newFileName = `qr-${path.parse(fileName).name}-${Date.now()}.webp`;
-    const outputPath = path.join(QR_DIR, newFileName);
 
-    // Sharp processing: resizing and WebP conversion for maximum clarity
-    await sharp(fileBuffer)
+    const buffer = await sharp(fileBuffer)
       .rotate()
-      .resize(600, 600, {
-        fit: 'inside',
-        withoutEnlargement: true
-      })
-      .sharpen() // Add sharpening for easier reading by mobile devices
-      .webp({ 
-        quality: 100, 
-        effort: 6,
-        lossless: true // Use lossless for QR codes to avoid artifacting
-      })
-      .toFile(outputPath);
+      .resize(600, 600, { fit: 'inside', withoutEnlargement: true })
+      .sharpen()
+      .webp({ quality: 100, effort: 6, lossless: true })
+      .toBuffer();
 
-    return `/uploads/qr/${newFileName}`;
+    const url = useFirebase()
+      ? await uploadToFirebase(buffer, `qr/${newFileName}`)
+      : await saveLocally(buffer, 'qr', newFileName);
+
+    return url;
   } catch (error) {
     console.error('Error procesando QR:', error);
     throw new Error('No se pudo procesar la imagen QR');
