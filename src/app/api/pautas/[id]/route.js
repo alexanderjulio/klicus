@@ -102,8 +102,20 @@ export async function PUT(req, { params: paramsPromise }) {
       id
     ]);
 
-    return apiResponse({ 
-      data: { success: true, message: 'Anuncio actualizado y enviado a verificación.' } 
+    // Notify all admins that this ad needs re-review
+    try {
+      const { createNotification, NotificationTemplates } = await import('@/lib/notifications');
+      const admins = await query('SELECT id FROM profiles WHERE role = "admin"');
+      const adminTemplate = NotificationTemplates.ADMIN_AD_EDITED(title);
+      for (const admin of admins) {
+        await createNotification({ userId: admin.id, ...adminTemplate, link: '/admin' });
+      }
+    } catch (notifErr) {
+      console.error('[NOTIF] Error notificando admin sobre edición de pauta:', notifErr.message);
+    }
+
+    return apiResponse({
+      data: { success: true, message: 'Anuncio actualizado y enviado a verificación.' }
     });
 
   } catch (error) {

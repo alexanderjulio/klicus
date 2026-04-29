@@ -103,11 +103,23 @@ export async function POST(req) {
     ]);
 
 
-    return apiResponse({ 
+    // Notify all admins about the new pending ad
+    try {
+      const { createNotification, NotificationTemplates } = await import('@/lib/notifications');
+      const admins = await query('SELECT id FROM profiles WHERE role = "admin"');
+      const adminTemplate = NotificationTemplates.ADMIN_NEW_AD(title, user.name || user.email || 'Usuario');
+      for (const admin of admins) {
+        await createNotification({ userId: admin.id, ...adminTemplate, link: '/admin' });
+      }
+    } catch (notifErr) {
+      console.error('[NOTIF] Error notificando admin sobre nueva pauta:', notifErr.message);
+    }
+
+    return apiResponse({
       data: {
-        success: true, 
+        success: true,
         adId,
-        message: 'Anuncio creado. Pendiente de aprobación por el administrador.' 
+        message: 'Anuncio creado. Pendiente de aprobación por el administrador.'
       }
     });
 

@@ -73,7 +73,7 @@ export async function POST(req) {
             await createNotification({
               userId: admin.id,
               ...adminTemplate,
-              link: `/dashboard/admin`
+              link: `/admin`
             });
           }
         }

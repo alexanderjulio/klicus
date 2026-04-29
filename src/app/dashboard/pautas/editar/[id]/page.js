@@ -67,15 +67,21 @@ export default function EditAdPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [images, setImages] = useState([]);
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     async function fetchAd() {
       try {
-        const res = await fetch(`/api/pautas/${id}`);
-        const json = await res.json();
-        const data = json.data || json;
+        const [adRes, catRes] = await Promise.all([
+          fetch(`/api/pautas/${id}`),
+          fetch('/api/categories'),
+        ]);
+        const adJson = await adRes.json();
+        const catJson = await catRes.json();
+        const data = adJson.data || adJson;
         setFormData(data);
         setImages(data.image_urls || []);
+        setCategories(catJson.categories || []);
       } catch (error) {
         console.error('Error fetching ad:', error);
       } finally {
@@ -296,13 +302,27 @@ export default function EditAdPage() {
 
                 <div className="group">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary/30 ml-2 mb-3 block group-focus-within:text-primary transition-colors">Descripción del Servicio</label>
-                  <textarea 
-                    value={formData.description} 
+                  <textarea
+                    value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                     rows={4}
                     placeholder="Cuéntanos más sobre lo que ofreces..."
                     className="w-full p-6 rounded-xl bg-[#F5F5F7] border border-border/40 focus:border-primary outline-none font-bold resize-none"
                   />
+                </div>
+
+                <div className="group">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary/30 ml-2 mb-3 block group-focus-within:text-primary transition-colors">Categoría</label>
+                  <select
+                    value={formData.category_id || ''}
+                    onChange={(e) => setFormData({...formData, category_id: e.target.value})}
+                    className="w-full h-14 px-6 rounded-xl bg-[#F5F5F7] border border-border/40 focus:border-primary outline-none font-bold appearance-none"
+                  >
+                    <option value="">Selecciona una categoría</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </section>

@@ -18,21 +18,28 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [processing, setProcessing] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  async function fetchStats() {
+  async function fetchStats(isManual = false) {
+    if (isManual) setRefreshing(true);
     try {
       const res = await fetch('/api/admin/stats');
       const json = await res.json();
       setData(json.data);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Failed to fetch admin stats:', error);
     } finally {
       setLoading(false);
+      if (isManual) setRefreshing(false);
     }
   }
 
   useEffect(() => {
     fetchStats();
+    const interval = setInterval(() => fetchStats(), 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleAction = async (adId, status) => {
@@ -111,6 +118,22 @@ export default function AdminDashboard() {
           </div>
         </div>
         <div className="flex items-center gap-4">
+          {lastUpdated && (
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                LIVE · {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+            </div>
+          )}
+          <button
+            onClick={() => fetchStats(true)}
+            disabled={refreshing}
+            title="Actualizar ahora"
+            className="p-2.5 rounded-full bg-muted/30 dark:bg-white/5 text-secondary dark:text-white transition-all hover:scale-110 disabled:opacity-50"
+          >
+            <Activity size={18} className={refreshing ? 'animate-spin' : ''} />
+          </button>
           <NotificationCenter />
           <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-amber-300 border-2 border-white dark:border-zinc-800 shadow-lg" />
         </div>

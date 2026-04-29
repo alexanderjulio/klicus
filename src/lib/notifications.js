@@ -61,5 +61,15 @@ export const NotificationTemplates = {
     title: '💰 ¡Nuevo Pago Recibido!',
     message: `El comercio "${adTitle}" ha completado un pago de $${amount.toLocaleString()}.`,
     type: 'success'
+  }),
+  ADMIN_NEW_AD: (adTitle, userName) => ({
+    title: '🔔 Nueva Pauta Pendiente',
+    message: `"${adTitle}" de ${userName} requiere revisión y aprobación.`,
+    type: 'info'
+  }),
+  ADMIN_AD_EDITED: (adTitle) => ({
+    title: '✏️ Pauta Editada — Revisión Requerida',
+    message: `"${adTitle}" fue editada por su dueño y requiere nueva revisión.`,
+    type: 'warning'
   })
 };
