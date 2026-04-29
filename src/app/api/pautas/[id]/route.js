@@ -25,21 +25,23 @@ export async function PUT(req, { params: paramsPromise }) {
 
     // 2. Data Extraction via FormData
     const formData = await req.formData();
+    // sanitize: FormData convierte null a "null" string
+    const s = (v) => (v === 'null' || v === '' ? null : v);
     const title = formData.get('title');
     const description = formData.get('description');
-    const price_range = formData.get('price_range') || '';
-    const location = formData.get('location');
-    const address = formData.get('address');
-    const business_hours = formData.get('business_hours');
+    const price_range = s(formData.get('price_range')) || '';
+    const location = s(formData.get('location'));
+    const address = s(formData.get('address'));
+    const business_hours = s(formData.get('business_hours'));
     const rawCategoryId = formData.get('category_id');
     const category_id = (rawCategoryId && rawCategoryId !== 'null') ? rawCategoryId : null;
-    const phone = formData.get('phone');
-    const cellphone = formData.get('cellphone');
-    const email = formData.get('email');
-    const website_url = formData.get('website_url');
-    const facebook_url = formData.get('facebook_url');
-    const instagram_url = formData.get('instagram_url');
-    const delivery_info = formData.get('delivery_info');
+    const phone = s(formData.get('phone'));
+    const cellphone = s(formData.get('cellphone'));
+    const email = s(formData.get('email'));
+    const website_url = s(formData.get('website_url'));
+    const facebook_url = s(formData.get('facebook_url'));
+    const instagram_url = s(formData.get('instagram_url'));
+    const delivery_info = s(formData.get('delivery_info'));
     const is_offer = formData.get('is_offer') === 'true';
     
     // IMAGE HANDLING: Merge existing URLs with new Files

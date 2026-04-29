@@ -91,9 +91,9 @@ export default function EditAdPage() {
     try {
       const data = new FormData();
       
-      // Add all text fields
+      // Add text fields — skip null/undefined to avoid saving "null" string to DB
       Object.keys(formData).forEach(key => {
-        if (key !== 'image_urls') {
+        if (key !== 'image_urls' && formData[key] !== null && formData[key] !== undefined) {
           data.append(key, formData[key]);
         }
       });

@@ -176,7 +176,7 @@ export default async function AdDetailPage({ params: paramsPromise }) {
                         </div>
                       </div>
                     )}
-                    {ad.email && (
+                    {ad.email && ad.email !== 'null' && (
                       <div className="p-8 rounded-[2.5rem] bg-[#F5F5F7] border border-border/20 group hover:bg-white hover:shadow-xl transition-all md:col-span-2">
                         <span className="text-[9px] font-black uppercase text-secondary/30 tracking-[0.2em] block mb-2">Correo Corporativo</span>
                         <div className="flex items-center gap-3 overflow-hidden">
