@@ -56,11 +56,17 @@ export async function PUT(req, { params: paramsPromise }) {
     // Process new images
     for (const file of newFiles) {
       if (file.size > 0 && finalImageUrls.length < maxAllowed) {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const result = await processAdImage(buffer, file.name || 'image.webp');
-        finalImageUrls.push(result.url);
+        try {
+          const buffer = Buffer.from(await file.arrayBuffer());
+          const result = await processAdImage(buffer, file.name || 'image.webp');
+          finalImageUrls.push(result.url);
+          console.log('[IMG] Imagen guardada:', result.url);
+        } catch (imgErr) {
+          console.error('[IMG] Error procesando imagen:', imgErr.message);
+        }
       }
     }
+    console.log('[IMG] URLs finales:', finalImageUrls);
 
     // Update the ad
     await query(`

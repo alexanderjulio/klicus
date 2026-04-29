@@ -358,9 +358,9 @@ export default function EditAdPage() {
                         </div>
                       )}
                     </div>
-                    <input 
-                      type="text" 
-                      value={formData.address} 
+                    <input
+                      type="text"
+                      value={formData.address || ''}
                       onChange={(e) => setFormData({...formData, address: e.target.value})}
                       placeholder="Dirección Física Exacta"
                       className="w-full h-14 px-6 rounded-xl bg-[#F5F5F7] border border-border/40 focus:border-primary outline-none font-bold"
@@ -377,7 +377,7 @@ export default function EditAdPage() {
                       <label className="text-[9px] font-black uppercase tracking-widest text-secondary/30 ml-2 mb-2 block">Rango de Precios</label>
                       <input 
                         type="text" 
-                        value={formData.price_range} 
+                        value={formData.price_range || ''}
                         onChange={(e) => setFormData({...formData, price_range: e.target.value})}
                         placeholder="Ej: $20.000 - $50.000"
                         className="w-full h-14 px-6 rounded-xl bg-[#F5F5F7] border border-border/40 focus:border-primary outline-none font-bold"
@@ -387,7 +387,7 @@ export default function EditAdPage() {
                       <label className="text-[9px] font-black uppercase tracking-widest text-secondary/30 ml-2 mb-2 block">Info Domicilios</label>
                       <input 
                         type="text" 
-                        value={formData.delivery_info} 
+                        value={formData.delivery_info || ''}
                         onChange={(e) => setFormData({...formData, delivery_info: e.target.value})}
                         placeholder="Ej: Domicilios gratis en el centro"
                         className="w-full h-14 px-6 rounded-xl bg-[#F5F5F7] border border-border/40 focus:border-primary outline-none font-bold"
@@ -413,7 +413,7 @@ export default function EditAdPage() {
                        <div className="relative">
                           <input 
                             type="text" 
-                            value={formData.cellphone} 
+                            value={formData.cellphone || ''}
                             onChange={(e) => setFormData({...formData, cellphone: e.target.value})}
                             className="w-full h-14 pl-12 pr-6 rounded-xl bg-[#F5F5F7] border border-border/40 focus:border-primary outline-none font-bold"
                           />
@@ -425,7 +425,7 @@ export default function EditAdPage() {
                        <div className="relative">
                           <input 
                             type="text" 
-                            value={formData.instagram_url} 
+                            value={formData.instagram_url || ''}
                             onChange={(e) => setFormData({...formData, instagram_url: e.target.value})}
                             placeholder="@tunegocio"
                             className="w-full h-14 pl-12 pr-6 rounded-xl bg-[#F5F5F7] border border-border/40 focus:border-primary outline-none font-bold"
@@ -442,7 +442,7 @@ export default function EditAdPage() {
                        <div className="relative">
                           <input 
                             type="text" 
-                            value={formData.website_url} 
+                            value={formData.website_url || ''}
                             onChange={(e) => setFormData({...formData, website_url: e.target.value})}
                             placeholder="https://www.tuweb.com"
                             className="w-full h-14 pl-12 pr-6 rounded-xl bg-[#F5F5F7] border border-border/40 focus:border-primary outline-none font-bold"
@@ -455,7 +455,7 @@ export default function EditAdPage() {
                        <div className="relative">
                           <input 
                             type="text" 
-                            value={formData.email} 
+                            value={formData.email || ''}
                             onChange={(e) => setFormData({...formData, email: e.target.value})}
                             className="w-full h-14 pl-12 pr-6 rounded-xl bg-[#F5F5F7] border border-border/40 focus:border-primary outline-none font-bold"
                           />
@@ -505,7 +505,7 @@ export default function EditAdPage() {
                 </div>
                 <input 
                   type="text" 
-                  value={formData.business_hours} 
+                  value={formData.business_hours || ''}
                   onChange={(e) => setFormData({...formData, business_hours: e.target.value})}
                   placeholder="Ej: Lunes a Sábado 8am - 6pm"
                   className="w-full h-14 px-6 rounded-xl bg-[#F5F5F7] border border-border/40 focus:border-primary outline-none font-bold"
