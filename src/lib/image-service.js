@@ -48,9 +48,17 @@ export async function processAdImage(fileBuffer, fileName) {
       .webp({ quality: 80, effort: 6 })
       .toBuffer();
 
-    const url = useFirebase()
-      ? await uploadToFirebase(buffer, `ads/${newFileName}`)
-      : await saveLocally(buffer, 'ads', newFileName);
+    let url;
+    if (useFirebase()) {
+      try {
+        url = await uploadToFirebase(buffer, `ads/${newFileName}`);
+      } catch (fbErr) {
+        console.error('Firebase upload failed, falling back to local:', fbErr.message);
+        url = await saveLocally(buffer, 'ads', newFileName);
+      }
+    } else {
+      url = await saveLocally(buffer, 'ads', newFileName);
+    }
 
     return { url };
   } catch (error) {
@@ -72,9 +80,17 @@ export async function processMarketingImage(fileBuffer, fileName) {
       .webp({ quality: 85, effort: 6 })
       .toBuffer();
 
-    const url = useFirebase()
-      ? await uploadToFirebase(buffer, `marketing/${newFileName}`)
-      : await saveLocally(buffer, 'marketing', newFileName);
+    let url;
+    if (useFirebase()) {
+      try {
+        url = await uploadToFirebase(buffer, `marketing/${newFileName}`);
+      } catch (fbErr) {
+        console.error('Firebase upload failed, falling back to local:', fbErr.message);
+        url = await saveLocally(buffer, 'marketing', newFileName);
+      }
+    } else {
+      url = await saveLocally(buffer, 'marketing', newFileName);
+    }
 
     return { url };
   } catch (error) {
@@ -97,9 +113,17 @@ export async function processQRImage(fileBuffer, fileName) {
       .webp({ quality: 100, effort: 6, lossless: true })
       .toBuffer();
 
-    const url = useFirebase()
-      ? await uploadToFirebase(buffer, `qr/${newFileName}`)
-      : await saveLocally(buffer, 'qr', newFileName);
+    let url;
+    if (useFirebase()) {
+      try {
+        url = await uploadToFirebase(buffer, `qr/${newFileName}`);
+      } catch (fbErr) {
+        console.error('Firebase upload failed, falling back to local:', fbErr.message);
+        url = await saveLocally(buffer, 'qr', newFileName);
+      }
+    } else {
+      url = await saveLocally(buffer, 'qr', newFileName);
+    }
 
     return url;
   } catch (error) {
