@@ -51,13 +51,13 @@ export default function Marketplace({ initialAds, categories, initialCategory = 
    * Format: "Bucaramanga, Santander" -> "Bucaramanga"
    */
   const availableCities = useMemo(() => {
-    const cities = initialAds.map(ad => ad.location.split(',')[0].trim());
+    const cities = initialAds.filter(ad => ad.location).map(ad => ad.location.split(',')[0].trim());
     return [...new Set(cities)].sort();
   }, [initialAds]);
 
   const filteredAds = useMemo(() => {
     return initialAds.filter(ad => {
-      const cityMatch = selectedCity === 'all' || ad.location.startsWith(selectedCity);
+      const cityMatch = selectedCity === 'all' || (ad.location && ad.location.startsWith(selectedCity));
       const searchMatch = 
         ad.title.toLowerCase().includes(search.toLowerCase()) || 
         ad.description.toLowerCase().includes(search.toLowerCase());
