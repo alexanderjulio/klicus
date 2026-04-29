@@ -1,3 +1,4 @@
+import { query } from './db.js';
 import { sendPushToUser } from './push-notifications.js';
 
 /**

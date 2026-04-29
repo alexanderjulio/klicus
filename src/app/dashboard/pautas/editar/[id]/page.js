@@ -72,7 +72,8 @@ export default function EditAdPage() {
     async function fetchAd() {
       try {
         const res = await fetch(`/api/pautas/${id}`);
-        const data = await res.json();
+        const json = await res.json();
+        const data = json.data || json;
         setFormData(data);
         setImages(data.image_urls || []);
       } catch (error) {
