@@ -31,7 +31,8 @@ export async function PUT(req, { params: paramsPromise }) {
     const location = formData.get('location');
     const address = formData.get('address');
     const business_hours = formData.get('business_hours');
-    const category_id = formData.get('category_id');
+    const rawCategoryId = formData.get('category_id');
+    const category_id = (rawCategoryId && rawCategoryId !== 'null') ? rawCategoryId : null;
     const phone = formData.get('phone');
     const cellphone = formData.get('cellphone');
     const email = formData.get('email');
@@ -71,7 +72,7 @@ export async function PUT(req, { params: paramsPromise }) {
         location = ?, 
         address = ?, 
         business_hours = ?, 
-        category_id = ?, 
+        category_id = COALESCE(?, category_id),
         phone = ?, 
         cellphone = ?, 
         email = ?, 
