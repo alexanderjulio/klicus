@@ -191,11 +191,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchInitialData() async {
-    await Future.wait([
-      _fetchAds(),
-      _fetchCategories(),
-      _checkInterstitial(),
-    ]);
+    _fetchCategories(); // sin await — solo fija estado local
+    await _checkInterstitial(); // intersticial primero, home sigue en loading
+    await _fetchAds(); // luego carga anuncios visible
   }
 
   Future<void> _checkInterstitial() async {

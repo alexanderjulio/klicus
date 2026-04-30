@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { getAuthenticatedUser } from '@/lib/auth-util';
-import { processMarketingImage, processAdImage } from '@/lib/image-service';
+import { processMarketingImage, processAdImage, processInterstitialImage } from '@/lib/image-service';
 import { NextResponse } from 'next/server';
 
 /**
@@ -27,6 +27,8 @@ export async function POST(req) {
 
     if (type === 'ad') {
       result = await processAdImage(buffer, file.name || 'image.webp');
+    } else if (type === 'interstitial') {
+      result = await processInterstitialImage(buffer, file.name || 'interstitial.webp');
     } else {
       result = await processMarketingImage(buffer, file.name || 'banner.webp');
     }

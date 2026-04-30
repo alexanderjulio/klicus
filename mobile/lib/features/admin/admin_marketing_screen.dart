@@ -502,7 +502,7 @@ class _InterstitialFormState extends State<_InterstitialForm> {
     });
 
     try {
-      final res = await _apiService.uploadFile('/admin/upload', image, extraData: {'type': 'marketing'});
+      final res = await _apiService.uploadFile('/admin/upload', image, extraData: {'type': 'interstitial'});
       if (!mounted) return;
       if (res.data['success'] == true) {
         setState(() {
