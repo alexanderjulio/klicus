@@ -203,6 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _isLoading = true;
       _currentPage = 1;
       _hasMorePages = true;
+      _error = '';
     });
     try {
       final response = await context.read<AdRepository>().fetchAds(
@@ -465,8 +466,55 @@ class _HomeScreenState extends State<HomeScreen> {
           // 5. Main Gallery (Sliver Grid)
           SliverPadding(
             padding: const EdgeInsets.all(20),
-            sliver: _isLoading 
-              ? const SliverToBoxAdapter(child: ShimmerAdGrid()) 
+            sliver: _isLoading
+              ? const SliverToBoxAdapter(child: ShimmerAdGrid())
+              : _error.isNotEmpty
+                ? SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(40.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.08), blurRadius: 20)],
+                              ),
+                              child: Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red[300]),
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              'SIN CONEXIÓN',
+                              style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w900, color: const Color(0xFF0E2244), letterSpacing: 2),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _error,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[500], height: 1.5),
+                            ),
+                            const SizedBox(height: 32),
+                            ElevatedButton.icon(
+                              onPressed: _fetchAds,
+                              icon: const Icon(Icons.refresh_rounded, size: 18),
+                              label: Text('REINTENTAR', style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0E2244),
+                                foregroundColor: const Color(0xFFE2E000),
+                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                elevation: 0,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
               : _filteredAds.isEmpty
                 ? SliverFillRemaining(
                     hasScrollBody: false,

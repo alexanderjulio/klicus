@@ -32,10 +32,10 @@ class _UserAdsScreenState extends State<UserAdsScreen> {
 
   Future<void> _fetchUserAds() async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+    setState(() { _isLoading = true; _error = ''; });
     try {
       final response = await context.read<UserRepository>().fetchUserAds();
-      
+
       if (response.data['success'] == true && mounted) {
         final List<dynamic> adsJson = response.data['ads'];
         setState(() {
@@ -85,15 +85,23 @@ class _UserAdsScreenState extends State<UserAdsScreen> {
         backgroundColor: Colors.white,
         child: _isLoading && _ads.isEmpty
           ? const Center(child: CircularProgressIndicator(color: navy))
-          : _ads.isEmpty
+          : _error.isNotEmpty
             ? SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: SizedBox(
                   height: MediaQuery.of(context).size.height - 200,
-                  child: _buildEmptyState(navy, yellow),
+                  child: _buildErrorState(_error, navy, yellow),
                 ),
               )
-            : ListView.builder(
+            : _ads.isEmpty
+              ? SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height - 200,
+                    child: _buildEmptyState(navy, yellow),
+                  ),
+                )
+              : ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 physics: const AlwaysScrollableScrollPhysics(),
                 itemCount: _ads.length,
@@ -104,6 +112,52 @@ class _UserAdsScreenState extends State<UserAdsScreen> {
                   yellow: yellow,
                 ),
               ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String message, Color navy, Color yellow) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.08), blurRadius: 20)],
+              ),
+              child: Icon(Icons.wifi_off_rounded, size: 60, color: Colors.red[300]),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              'ERROR DE CONEXIÓN',
+              style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 16, color: navy, letterSpacing: 1),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(color: Colors.grey[500], fontSize: 13, height: 1.5),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: _fetchUserAds,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: Text('REINTENTAR', style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: navy,
+                foregroundColor: yellow,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
