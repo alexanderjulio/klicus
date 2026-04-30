@@ -60,24 +60,32 @@ export async function PUT(req) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
-    const { id, title, subtitle, image_url, cta_text, cta_link, is_active, position } = await req.json();
+    const body = await req.json();
+    const { id } = body;
 
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
     await query("ALTER TABLE banners ADD COLUMN IF NOT EXISTS type VARCHAR(20) NOT NULL DEFAULT 'carousel'").catch(() => {});
 
-    await query(
-      `UPDATE banners SET
-        title = COALESCE(?, title),
-        subtitle = COALESCE(?, subtitle),
-        image_url = COALESCE(?, image_url),
-        cta_text = COALESCE(?, cta_text),
-        cta_link = COALESCE(?, cta_link),
-        is_active = COALESCE(?, is_active),
-        position = COALESCE(?, position)
-      WHERE id = ?`,
-      [title, subtitle, image_url, cta_text, cta_link, is_active, position, id]
-    );
+    // Build dynamic UPDATE — avoids COALESCE treating boolean false as NULL
+    const updates = [];
+    const params = [];
+
+    if (body.title !== undefined)    { updates.push('title = ?');     params.push(body.title); }
+    if (body.subtitle !== undefined) { updates.push('subtitle = ?');  params.push(body.subtitle); }
+    if (body.image_url !== undefined){ updates.push('image_url = ?'); params.push(body.image_url); }
+    if (body.cta_text !== undefined) { updates.push('cta_text = ?');  params.push(body.cta_text); }
+    if (body.cta_link !== undefined) { updates.push('cta_link = ?');  params.push(body.cta_link); }
+    if (body.is_active !== undefined && body.is_active !== null) {
+      updates.push('is_active = ?');
+      params.push(body.is_active ? 1 : 0);
+    }
+    if (body.position !== undefined) { updates.push('position = ?'); params.push(body.position); }
+
+    if (updates.length === 0) return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 });
+
+    params.push(id);
+    await query(`UPDATE banners SET ${updates.join(', ')} WHERE id = ?`, params);
 
     return NextResponse.json({ success: true });
   } catch (error) {
