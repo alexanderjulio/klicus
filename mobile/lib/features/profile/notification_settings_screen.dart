@@ -108,34 +108,33 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               child: ElevatedButton(
                 onPressed: _isSaving ? null : () async {
                   setState(() => _isSaving = true);
+                  final messenger = ScaffoldMessenger.of(context);
+                  final navigator = Navigator.of(context);
+                  final repo = context.read<UserRepository>();
                   try {
-                    final response = await context.read<UserRepository>().updateNotificationPreferences({
+                    final response = await repo.updateNotificationPreferences({
                       'marketing': _marketing,
                       'ad_status': _adStatus,
                       'security': _security,
                       'news': _news,
                     });
-                    if (mounted) {
-                      if (response.data['success'] == true) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Preferencias guardadas correctamente'),
-                            backgroundColor: Color(0xFF0E2244),
-                          ),
-                        );
-                        Navigator.pop(context);
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(response.data['error'] ?? 'Error al guardar')),
-                        );
-                      }
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Error de conexión al guardar preferencias')),
+                    if (response.data['success'] == true) {
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('Preferencias guardadas correctamente'),
+                          backgroundColor: Color(0xFF0E2244),
+                        ),
+                      );
+                      navigator.pop();
+                    } else {
+                      messenger.showSnackBar(
+                        SnackBar(content: Text(response.data['error'] ?? 'Error al guardar')),
                       );
                     }
+                  } catch (e) {
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Error de conexión al guardar preferencias')),
+                    );
                   } finally {
                     if (mounted) setState(() => _isSaving = false);
                   }

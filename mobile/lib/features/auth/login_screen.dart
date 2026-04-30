@@ -190,10 +190,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: ElevatedButton(
                     onPressed: auth.isLoading ? null : () async {
                       if (!_formKey.currentState!.validate()) return;
+                      final navigator = Navigator.of(context);
                       final success = await auth.login(_emailController.text.trim(), _passwordController.text);
-                      if (success && mounted) {
-                        Navigator.pushReplacementNamed(context, '/home');
-                      }
+                      if (success && mounted) navigator.pushReplacementNamed('/home');
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: yellow,

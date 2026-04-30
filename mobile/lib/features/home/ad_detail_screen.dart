@@ -71,9 +71,12 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
 
   Future<void> _startChat(BuildContext context) async {
     if (_isStartingChat) return;
-    
+
     final auth = context.read<AuthProvider>();
     final apiService = context.read<ApiService>();
+    final analyticsRef = context.read<AnalyticsService>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     final navy = const Color(0xFF0E2244);
     final yellow = const Color(0xFFE2E000);
 
@@ -88,7 +91,9 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
       if (existingGuestId == null || existingGuestName == null) {
         debugPrint('Mostrando Diálogo de Identidad a Invitado...');
         final TextEditingController nameController = TextEditingController();
+        if (!mounted) return;
         final bool? confirmed = await showDialog<bool>(
+          // ignore: use_build_context_synchronously
           context: context,
           barrierDismissible: false, // Force them to choose or cancel
           builder: (dialogContext) => AlertDialog(
@@ -161,11 +166,12 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
         
         // Unified Push Registration
         await PushNotificationService.registerToken();
+        if (!mounted) return;
       }
     }
 
     if (widget.ad.ownerId == auth.currentUser?['id'].toString()) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text('NO PUEDES CHATEAR CONTIGO MISMO 🛡️', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
           backgroundColor: navy,
@@ -180,51 +186,46 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
     try {
       final chatService = ChatService(apiService);
       final response = await chatService.startConversation(widget.ad.id);
-      
-      if (mounted) setState(() => _isStartingChat = false);
+
+      if (!mounted) return;
+      setState(() => _isStartingChat = false);
 
       if (response.statusCode == 200 && response.data['success'] == true) {
         final convId = response.data['conversationId'];
-        
-        // Track Chat Analytics Event
+
         try {
-          final analytics = context.read<AnalyticsService>();
-          await analytics.trackEvent(adId: widget.ad.id, eventType: 'chat');
+          await analyticsRef.trackEvent(adId: widget.ad.id, eventType: 'chat');
         } catch(e) { debugPrint('Chat analytics track error: $e'); }
 
-        if (mounted) {
-           Navigator.push(context, MaterialPageRoute(builder: (_) => 
-             ChatDetailScreen(conversation: {
-               'id': convId,
-               'ad_title': widget.ad.title,
-               'seller_name': widget.ad.ownerName ?? 'VENDEDOR ELITE'
-             })
-           ));
-        }
+        if (!mounted) return;
+        navigator.push(MaterialPageRoute(builder: (_) =>
+          ChatDetailScreen(conversation: {
+            'id': convId,
+            'ad_title': widget.ad.title,
+            'seller_name': widget.ad.ownerName ?? 'VENDEDOR ELITE'
+          })
+        ));
       } else {
         final errorMsg = response.data?['error'] ?? 'Error desconocido del servidor';
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('ERROR: $errorMsg ⚠️', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-              backgroundColor: Colors.red[800],
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) setState(() => _isStartingChat = false);
-      debugPrint('Start Chat Error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text('FALLO DE CONEXIÓN AL CHAT: $e 📡', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-            backgroundColor: Colors.red[900],
+            content: Text('ERROR: $errorMsg ⚠️', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+            backgroundColor: Colors.red[800],
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isStartingChat = false);
+      debugPrint('Start Chat Error: $e');
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('FALLO DE CONEXIÓN AL CHAT: $e 📡', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.red[900],
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 

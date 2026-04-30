@@ -148,19 +148,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: ElevatedButton(
                     onPressed: auth.isLoading ? null : () async {
                       if (!_formKey.currentState!.validate()) return;
+                      final messenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
                       final success = await auth.register(
                         _nameController.text.trim(),
                         _emailController.text.trim(),
                         _passwordController.text,
                       );
                       if (success && mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           SnackBar(
                             content: Text('Cuenta Elite creada con éxito.', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
                             backgroundColor: navy,
                           ),
                         );
-                        Navigator.pop(context);
+                        navigator.pop();
                       }
                     },
                     style: ElevatedButton.styleFrom(

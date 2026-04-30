@@ -52,7 +52,9 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       final response = await context.read<UserRepository>().deleteAccount();
       if (!mounted) return;
       if (response.statusCode == 200 || response.data['success'] == true) {
-        await context.read<AuthProvider>().logout();
+        final auth = context.read<AuthProvider>();
+        await auth.logout();
+        if (!mounted) return;
         Navigator.of(context).popUntil((route) => route.isFirst);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

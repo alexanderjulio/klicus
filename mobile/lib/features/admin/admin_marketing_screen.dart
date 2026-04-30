@@ -297,6 +297,7 @@ class _BannerFormState extends State<_BannerForm> {
               'dimensions': '${res.data['width']}x${res.data['height']} px',
             };
           });
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Imagen subida y optimizada con éxito'),
             backgroundColor: Colors.green,
@@ -304,6 +305,7 @@ class _BannerFormState extends State<_BannerForm> {
         }
       } catch (e) {
         debugPrint('Upload error: $e');
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Error al subir imagen al servidor'),
           backgroundColor: Colors.redAccent,

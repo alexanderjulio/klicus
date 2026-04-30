@@ -228,6 +228,9 @@ class _EditAdScreenState extends State<EditAdScreen> {
 
   Future<void> _saveChanges() async {
     setState(() => _isLoading = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final repo = context.read<AdRepository>();
     try {
       // Use dio.FormData which correctly handles lists of keys
       final formDataMap = {
@@ -269,14 +272,12 @@ class _EditAdScreenState extends State<EditAdScreen> {
         }
       }
 
-      final response = await context.read<AdRepository>().updateAd(widget.ad.id.toString(), formData);
-      
+      final response = await repo.updateAd(widget.ad.id.toString(), formData);
+
       if (response.statusCode == 200) {
         await _clearDraft();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Anuncio actualizado con éxito')));
-          Navigator.pop(context, true);
-        }
+        messenger.showSnackBar(const SnackBar(content: Text('Anuncio actualizado con éxito')));
+        navigator.pop(true);
       } else {
         throw dio.DioException(
           requestOptions: response.requestOptions,
