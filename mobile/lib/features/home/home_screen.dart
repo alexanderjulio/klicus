@@ -20,6 +20,8 @@ import '../auth/auth_provider.dart';
 import '../notifications/notification_screen.dart';
 import '../notifications/notification_provider.dart';
 import 'package:flutter/rendering.dart';
+import '../../core/repositories/admin_repository.dart';
+import 'interstitial_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -180,6 +182,31 @@ class _HomeScreenState extends State<HomeScreen> {
       _fetchAds(),
       _fetchCategories(),
     ]);
+    _checkInterstitial();
+  }
+
+  Future<void> _checkInterstitial() async {
+    try {
+      final repo = context.read<AdminRepository>();
+      final response = await repo.getInterstitial();
+      if (!mounted) return;
+      final data = response.data['data'];
+      if (data != null) {
+        await Navigator.of(context).push(PageRouteBuilder(
+          opaque: false,
+          barrierDismissible: false,
+          pageBuilder: (_, __, ___) => InterstitialScreen(
+            imageUrl: data['image_url'],
+            ctaLink: data['cta_link'],
+          ),
+          transitionsBuilder: (_, animation, __, child) =>
+              FadeTransition(opacity: animation, child: child),
+          transitionDuration: const Duration(milliseconds: 400),
+        ));
+      }
+    } catch (_) {
+      // Fallo silencioso — el intersticial es opcional
+    }
   }
 
   Future<void> _fetchCategories() async {
@@ -696,10 +723,10 @@ class _HomeScreenState extends State<HomeScreen> {
               child: CircleAvatar(
                 radius: 20,
                 backgroundColor: isAuth ? Colors.white : Colors.grey[100],
-                backgroundImage: (isAuth && user?['avatar_url'] != null && user['avatar_url'].toString().isNotEmpty)
+                backgroundImage: (isAuth && user?['avatar_url'] != null && user!['avatar_url'].toString().isNotEmpty)
                   ? CachedNetworkImageProvider(ApiService.normalizeUrl(user['avatar_url']), cacheManager: KlicusCacheManager.instance)
                   : null,
-                child: (isAuth && (user?['avatar_url'] == null || user['avatar_url'].toString().isEmpty))
+                child: (isAuth && (user?['avatar_url'] == null || user!['avatar_url'].toString().isEmpty))
                   ? Text(
                       initials,
                       style: GoogleFonts.outfit(

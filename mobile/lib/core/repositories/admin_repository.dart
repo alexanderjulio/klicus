@@ -39,6 +39,27 @@ class AdminRepository {
   Future<Response> uploadBannerImage(XFile image) =>
       _api.uploadFile('/admin/upload', image, extraData: {'type': 'marketing'});
 
+  // ── Interstitial ─────────────────────────────────────────────────────────
+
+  Future<Response> getInterstitial() => _api.get('/interstitial');
+
+  Future<Response> createInterstitial(String imageUrl, {String? ctaLink}) =>
+      _api.post('/admin/banners', data: {
+        'title': '',
+        'image_url': imageUrl,
+        'cta_link': ctaLink,
+        'is_active': true,
+        'type': 'interstitial',
+      });
+
+  Future<Response> updateInterstitial(int id, {String? imageUrl, String? ctaLink, bool? isActive}) =>
+      _api.put('/admin/banners', data: {
+        'id': id,
+        if (imageUrl != null) 'image_url': imageUrl,
+        if (ctaLink != null) 'cta_link': ctaLink,
+        if (isActive != null) 'is_active': isActive,
+      });
+
   // ── Push Notifications ───────────────────────────────────────────────────
 
   Future<Response> searchUsers(String query) =>

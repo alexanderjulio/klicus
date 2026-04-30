@@ -29,15 +29,21 @@ export async function POST(req) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
-    const { title, subtitle, image_url, cta_text, cta_link, is_active } = await req.json();
+    const { title, subtitle, image_url, cta_text, cta_link, is_active, type } = await req.json();
+    const bannerType = type === 'interstitial' ? 'interstitial' : 'carousel';
 
-    if (!title || !image_url) {
-      return NextResponse.json({ error: 'Título e imagen son requeridos' }, { status: 400 });
+    if (bannerType === 'carousel' && !title) {
+      return NextResponse.json({ error: 'Título es requerido para banners de carrusel' }, { status: 400 });
+    }
+    if (!image_url) {
+      return NextResponse.json({ error: 'Imagen es requerida' }, { status: 400 });
     }
 
+    await query("ALTER TABLE banners ADD COLUMN IF NOT EXISTS type VARCHAR(20) NOT NULL DEFAULT 'carousel'").catch(() => {});
+
     const result = await query(
-      'INSERT INTO banners (title, subtitle, image_url, cta_text, cta_link, is_active) VALUES (?, ?, ?, ?, ?, ?)',
-      [title, subtitle, image_url, cta_text, cta_link, is_active ?? true]
+      'INSERT INTO banners (title, subtitle, image_url, cta_text, cta_link, is_active, type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [title ?? '', subtitle, image_url, cta_text, cta_link, is_active ?? true, bannerType]
     );
 
     return NextResponse.json({ success: true, id: result.insertId });
@@ -58,8 +64,10 @@ export async function PUT(req) {
 
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
+    await query("ALTER TABLE banners ADD COLUMN IF NOT EXISTS type VARCHAR(20) NOT NULL DEFAULT 'carousel'").catch(() => {});
+
     await query(
-      `UPDATE banners SET 
+      `UPDATE banners SET
         title = COALESCE(?, title),
         subtitle = COALESCE(?, subtitle),
         image_url = COALESCE(?, image_url),
