@@ -19,6 +19,7 @@ import 'features/profile/profile_provider.dart';
 import 'features/notifications/notification_provider.dart';
 import 'features/auth/login_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
+import 'features/splash/splash_screen.dart';
 import 'core/widgets/main_navigation.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -124,8 +125,9 @@ class KlicusApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/',
+      initialRoute: '/splash',
       routes: {
+        '/splash': (context) => const SplashScreen(),
         '/': (context) => const MainNavigation(),
         '/home': (context) => const MainNavigation(),
         '/login': (context) => const LoginScreen(),
