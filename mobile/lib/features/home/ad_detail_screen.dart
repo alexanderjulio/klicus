@@ -792,6 +792,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
   }
 
   Widget _buildWhatsAppButton(Color navy, Color yellow) {
+    if (widget.ad.cellphone == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Container(
@@ -809,7 +810,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
         child: ElevatedButton(
           onPressed: () {
             final String message = 'Hola, estoy interesado en tu anuncio "${widget.ad.title}" que vi en KLICUS.';
-             _launchUrl("https://wa.me/${widget.ad.cellphone ?? '573201234567'}?text=${Uri.encodeComponent(message)}", 'contact');
+            _launchUrl("https://wa.me/${widget.ad.cellphone}?text=${Uri.encodeComponent(message)}", 'contact');
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: yellow,
