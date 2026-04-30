@@ -6,8 +6,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiService {
   static String get baseUrl {
-    if (kIsWeb) return 'http://localhost:4000/api';
-    return 'http://192.168.1.5:4000/api'; // WiFi IP for Real Devices
+    if (kIsWeb) return 'https://klicus.com.co/api';
+    return 'https://klicus.com.co/api';
   }
 
   static String normalizeUrl(String? path) {
