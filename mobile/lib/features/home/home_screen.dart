@@ -56,12 +56,18 @@ class _HomeScreenState extends State<HomeScreen> {
   OverlayEntry? _suggestionsOverlayEntry;
   List<dynamic> _suggestions = [];
   Timer? _searchDebounce;
+  int _bannerRefreshKey = 0;
+  NavigationProvider? _navProvider;
 
   @override
   void initState() {
     super.initState();
     _fetchInitialData();
     _searchFocusNode.addListener(_onSearchFocusChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _navProvider = context.read<NavigationProvider>();
+      _navProvider!.addListener(_onTabChanged);
+    });
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
               _scrollController.position.maxScrollExtent - 300 &&
@@ -165,8 +171,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _onTabChanged() {
+    if (_navProvider?.currentIndex == 0 && mounted && !_isLoading) {
+      _fetchAds();
+      setState(() => _bannerRefreshKey++);
+    }
+  }
+
   @override
   void dispose() {
+    _navProvider?.removeListener(_onTabChanged);
     _searchDebounce?.cancel();
     _scrollController.dispose();
     _searchController.dispose();
@@ -190,7 +204,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final response = await repo.getInterstitial();
       if (!mounted) return;
       final data = response.data['data'];
-      if (data != null) {
+      final imageUrl = data?['image_url'];
+      if (data != null && imageUrl != null && imageUrl.toString().isNotEmpty) {
         await Navigator.of(context).push(PageRouteBuilder(
           opaque: false,
           barrierDismissible: false,
@@ -470,7 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  const BannerCarousel(),
+                  BannerCarousel(key: ValueKey(_bannerRefreshKey)),
                   const SizedBox(height: 10),
                 ],
               ),
