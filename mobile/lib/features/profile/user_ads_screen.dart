@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/services/image_cache_manager.dart';
 import '../auth/auth_provider.dart';
-import '../../core/api_service.dart';
 import '../../core/repositories/user_repository.dart';
 import '../../models/ad_model.dart';
 import '../home/ad_detail_screen.dart';

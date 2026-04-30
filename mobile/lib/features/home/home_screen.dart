@@ -696,10 +696,10 @@ class _HomeScreenState extends State<HomeScreen> {
               child: CircleAvatar(
                 radius: 20,
                 backgroundColor: isAuth ? Colors.white : Colors.grey[100],
-                backgroundImage: (isAuth && user?['avatar_url'] != null && user!['avatar_url'].toString().isNotEmpty) 
-                  ? CachedNetworkImageProvider(ApiService.normalizeUrl(user!['avatar_url']), cacheManager: KlicusCacheManager.instance)
+                backgroundImage: (isAuth && user?['avatar_url'] != null && user['avatar_url'].toString().isNotEmpty)
+                  ? CachedNetworkImageProvider(ApiService.normalizeUrl(user['avatar_url']), cacheManager: KlicusCacheManager.instance)
                   : null,
-                child: (isAuth && (user?['avatar_url'] == null || user!['avatar_url'].toString().isEmpty))
+                child: (isAuth && (user?['avatar_url'] == null || user['avatar_url'].toString().isEmpty))
                   ? Text(
                       initials,
                       style: GoogleFonts.outfit(

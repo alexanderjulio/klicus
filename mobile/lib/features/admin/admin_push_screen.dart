@@ -15,7 +15,6 @@ class _AdminPushScreenState extends State<AdminPushScreen> {
   
   final _titleController = TextEditingController();
   final _messageController = TextEditingController();
-  final _userSearchController = TextEditingController();
 
   Map<String, dynamic>? _selectedUser;
   List<dynamic> _searchResults = [];

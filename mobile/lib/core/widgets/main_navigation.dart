@@ -36,7 +36,6 @@ class MainNavigation extends StatelessWidget {
 
   Widget _buildGlassNavigationBar(BuildContext context, NavigationProvider nav) {
     final navy = const Color(0xFF0E2244);
-    final yellow = const Color(0xFFE2E000);
 
     return Container(
       decoration: BoxDecoration(

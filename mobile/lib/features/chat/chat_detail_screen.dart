@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -268,8 +267,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   Widget _buildMessageBubble(dynamic msg, bool isMe, Color navy, Color yellow) {
     final bool isImage = msg['message_type'] == 'image';
-    final isSeller = widget.conversation['seller_id']?.toString() == _currentGuestId; // Simple check for guest context
-    
+
     // Determine the label for the bubble
     String senderLabel = isMe ? 'TÚ' : (widget.conversation['seller_name'] ?? 'VENDEDOR');
     if (!isMe) {

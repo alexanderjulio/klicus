@@ -44,7 +44,6 @@ class _AdAnalyticsScreenState extends State<AdAnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     const navy = Color(0xFF0E2244);
-    const yellow = Color(0xFFE2E000);
     const bg = Color(0xFFF8F9FB);
 
     return Scaffold(

@@ -12,12 +12,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart' as dio;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/api_service.dart';
 import '../../core/repositories/ad_repository.dart';
 import '../../models/ad_model.dart';
-import '../auth/auth_provider.dart';
 
 class EditAdScreen extends StatefulWidget {
   final AdModel ad;
@@ -211,7 +208,7 @@ class _EditAdScreenState extends State<EditAdScreen> {
       if (placemarks.isNotEmpty && mounted) {
         final p = placemarks.first;
         final parts = [p.locality, p.administrativeArea, p.country]
-            .where((s) => s != null && s!.isNotEmpty)
+            .where((s) => s != null && s.isNotEmpty)
             .join(', ');
         setState(() {
           _locationController.text = parts.isNotEmpty
@@ -303,7 +300,6 @@ class _EditAdScreenState extends State<EditAdScreen> {
   @override
   Widget build(BuildContext context) {
     const navy = Color(0xFF0E2244);
-    const yellow = Color(0xFFE2E000);
     const bg = Color(0xFFF8F9FB);
 
     return Scaffold(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_provider.dart';
-import '../../core/api_service.dart';
 import '../../core/repositories/user_repository.dart';
 
 class PrivacySecurityScreen extends StatefulWidget {
@@ -76,7 +75,6 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     final auth = Provider.of<AuthProvider>(context);
     final user = auth.currentUser;
     const navy = Color(0xFF0E2244);
-    const yellow = Color(0xFFE2E000);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FA),

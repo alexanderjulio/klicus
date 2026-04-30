@@ -3,8 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
-import '../home/home_screen.dart'; // To potentially trigger refresh
 import '../../core/api_service.dart';
 
 class AdminMarketingScreen extends StatefulWidget {
@@ -258,7 +256,6 @@ class _BannerFormState extends State<_BannerForm> {
   bool _isSaving = false;
   bool _isUploading = false;
   
-  XFile? _selectedXFile;
   Uint8List? _selectedBytes;
   Map<String, dynamic>? _uploadMetadata;
 
@@ -284,7 +281,6 @@ class _BannerFormState extends State<_BannerForm> {
       final sizeInMb = bytes.length / (1024 * 1024);
       
       setState(() {
-        _selectedXFile = image;
         _selectedBytes = bytes;
         _isUploading = true;
       });

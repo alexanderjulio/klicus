@@ -6,7 +6,6 @@ import 'user_ads_screen.dart';
 import 'business_info_screen.dart';
 import '../admin/admin_push_screen.dart';
 import '../admin/admin_marketing_screen.dart';
-import '../admin/admin_analytics_screen.dart';
 import 'privacy_security_screen.dart';
 import 'notification_settings_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -176,10 +175,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           
-                          if (user?['bio'] != null && user!['bio'].toString().isNotEmpty) ...[
+                          if (user?['bio'] != null && user['bio'].toString().isNotEmpty) ...[
                             const SizedBox(height: 16),
                             Text(
-                              user!['bio'],
+                              user['bio'],
                               textAlign: TextAlign.center,
                               style: GoogleFonts.inter(
                                 color: Colors.grey[600],
