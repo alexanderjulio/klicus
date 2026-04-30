@@ -14,6 +14,7 @@ import 'core/services/stats_provider.dart';
 import 'core/repositories/ad_repository.dart';
 import 'core/repositories/user_repository.dart';
 import 'core/repositories/chat_repository.dart';
+import 'core/repositories/admin_repository.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/profile/profile_provider.dart';
 import 'features/notifications/notification_provider.dart';
@@ -70,6 +71,9 @@ void main() async {
         ),
         ProxyProvider<ApiService, ChatRepository>(
           update: (_, api, __) => ChatRepository(api),
+        ),
+        ProxyProvider<ApiService, AdminRepository>(
+          update: (_, api, __) => AdminRepository(api),
         ),
       ],
       child: const KlicusApp(),

@@ -781,9 +781,17 @@ class _BannerFormState extends State<_BannerForm> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_imageController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona una imagen primero'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
+    final messenger = ScaffoldMessenger.of(context);
     try {
-      final data = {
+      final data = <String, dynamic>{
         'title': _titleController.text,
         'subtitle': _subtitleController.text,
         'image_url': _imageController.text,
@@ -802,6 +810,9 @@ class _BannerFormState extends State<_BannerForm> {
       widget.onSave();
     } catch (e) {
       debugPrint('Save error: $e');
+      messenger.showSnackBar(
+        SnackBar(content: Text('Error al guardar: $e'), backgroundColor: Colors.redAccent),
+      );
     } finally {
       setState(() => _isSaving = false);
     }
