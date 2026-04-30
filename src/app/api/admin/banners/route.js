@@ -52,7 +52,7 @@ export async function POST(req) {
 
     const result = await query(
       'INSERT INTO banners (title, subtitle, image_url, cta_text, cta_link, is_active, type) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [title ?? '', subtitle, image_url, cta_text, cta_link, is_active ?? true, bannerType]
+      [title ?? '', subtitle ?? null, image_url, cta_text ?? null, cta_link ?? null, is_active ?? true, bannerType]
     );
 
     return NextResponse.json({ success: true, id: result.insertId });
