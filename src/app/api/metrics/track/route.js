@@ -23,6 +23,12 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Falta adId para este evento' }, { status: 400 });
     }
 
+    // Global events (install/session) have no ad_id — skip if column is NOT NULL
+    // Run: ALTER TABLE metrics MODIFY COLUMN ad_id INT NULL; in phpMyAdmin to enable
+    if (isGlobalEvent && !adId) {
+      return NextResponse.json({ success: true, skipped: 'global_event_no_ad_id' });
+    }
+
     // 1. Device Detection (Enhanced for Flutter)
     const ua = req.headers.get('user-agent') || '';
     const source = req.headers.get('x-source') || '';

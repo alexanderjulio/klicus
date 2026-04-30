@@ -597,6 +597,17 @@ class _InterstitialFormState extends State<_InterstitialForm> {
               'Imagen a pantalla completa que aparece al abrir la app.',
               style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
             ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(color: const Color(0xFF0E2244).withOpacity(0.06), borderRadius: BorderRadius.circular(8)),
+              child: Row(children: [
+                const Icon(Icons.straighten_rounded, size: 13, color: Color(0xFF0E2244)),
+                const SizedBox(width: 6),
+                Text('Tamaño ideal: 1080 × 1920 px (retrato 9:16)',
+                    style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF0E2244), fontWeight: FontWeight.w600)),
+              ]),
+            ),
             const SizedBox(height: 24),
 
             // Image picker
@@ -923,7 +934,18 @@ class _BannerFormState extends State<_BannerForm> {
                   IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(color: const Color(0xFF0E2244).withOpacity(0.06), borderRadius: BorderRadius.circular(8)),
+                child: Row(children: [
+                  const Icon(Icons.straighten_rounded, size: 13, color: Color(0xFF0E2244)),
+                  const SizedBox(width: 6),
+                  Text('Tamaño ideal: 1200 × 450 px (horizontal 8:3)',
+                      style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF0E2244), fontWeight: FontWeight.w600)),
+                ]),
+              ),
+              const SizedBox(height: 20),
 
               _buildImageSelector(navy),
               const SizedBox(height: 24),

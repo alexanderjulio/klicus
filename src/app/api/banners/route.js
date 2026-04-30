@@ -9,7 +9,7 @@ export async function GET() {
   if (process.env.BUILD_MODE) return new Response(JSON.stringify({ build: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   try {
     const banners = await query(
-      'SELECT id, title, subtitle, image_url, cta_text, cta_link FROM banners WHERE is_active = 1 ORDER BY position ASC, created_at DESC'
+      "SELECT id, title, subtitle, image_url, cta_text, cta_link FROM banners WHERE is_active = 1 AND (type = 'carousel' OR type IS NULL) ORDER BY position ASC, created_at DESC"
     );
     
     return NextResponse.json({ success: true, data: banners });

@@ -194,8 +194,8 @@ class _HomeScreenState extends State<HomeScreen> {
     await Future.wait([
       _fetchAds(),
       _fetchCategories(),
+      _checkInterstitial(),
     ]);
-    _checkInterstitial();
   }
 
   Future<void> _checkInterstitial() async {

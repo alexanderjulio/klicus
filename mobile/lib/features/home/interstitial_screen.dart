@@ -30,7 +30,7 @@ class InterstitialScreen extends StatelessWidget {
             child: CachedNetworkImage(
               imageUrl: ApiService.normalizeUrl(imageUrl),
               cacheManager: KlicusCacheManager.instance,
-              fit: BoxFit.contain,
+              fit: BoxFit.cover,
               placeholder: (_, __) => const Center(child: CircularProgressIndicator(color: Color(0xFFE2E000))),
               errorWidget: (_, __, ___) => const Center(child: Icon(Icons.broken_image, color: Colors.white54, size: 64)),
             ),
