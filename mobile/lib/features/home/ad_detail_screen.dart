@@ -9,6 +9,7 @@ import '../../core/api_service.dart';
 import '../../models/ad_model.dart';
 import '../auth/auth_provider.dart';
 import '../profile/edit_ad_screen.dart';
+import '../profile/upgrade_ad_screen.dart';
 import '../../core/services/push_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/chat_service.dart';
@@ -336,17 +337,28 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                   );
                 },
               ),
-              if (isOwner)
+              if (isOwner) ...[
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: CircleAvatar(
+                    backgroundColor: const Color(0xFFE2E000),
+                    child: IconButton(
+                      icon: Icon(Icons.star_rounded, color: navy),
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => UpgradeAdScreen(ad: widget.ad))),
+                    ),
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: CircleAvatar(
                     backgroundColor: yellow,
                     child: IconButton(
-                    icon: Icon(Icons.edit, color: navy),
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EditAdScreen(ad: widget.ad))),
+                      icon: Icon(Icons.edit, color: navy),
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EditAdScreen(ad: widget.ad))),
                     ),
                   ),
                 ),
+              ],
             ],
           ),
 
@@ -523,9 +535,9 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
         ],
       ),
       
-      // STICKY WHATSAPP CTA
+      // STICKY CTA
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: _buildWhatsAppButton(navy, yellow),
+      floatingActionButton: isOwner ? _buildUpgradeButton(context, navy, yellow) : _buildWhatsAppButton(navy, yellow),
     );
   }
 
@@ -735,6 +747,44 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 0,
           side: BorderSide(color: navy.withOpacity(0.05)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUpgradeButton(BuildContext context, Color navy, Color yellow) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      child: Container(
+        height: 64,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: yellow.withOpacity(0.35),
+              blurRadius: 30,
+              offset: const Offset(0, 10),
+            )
+          ],
+        ),
+        child: ElevatedButton(
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => UpgradeAdScreen(ad: widget.ad))),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: navy,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            elevation: 0,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.star_rounded, color: yellow, size: 22),
+              const SizedBox(width: 12),
+              Text(
+                'DESTACAR ESTE ANUNCIO',
+                style: GoogleFonts.outfit(color: yellow, fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 13),
+              ),
+            ],
+          ),
         ),
       ),
     );
