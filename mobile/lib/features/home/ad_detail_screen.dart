@@ -50,7 +50,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
     try {
       final analytics = context.read<AnalyticsService>();
       await analytics.trackEvent(adId: widget.ad.id, eventType: 'share');
-      await Share.share(shareText, subject: 'Compartir Anuncio KLICUS');
+      await SharePlus.instance.share(ShareParams(text: shareText, subject: 'Compartir Anuncio KLICUS'));
     } catch (e) {
       debugPrint('Share error: $e');
     }
