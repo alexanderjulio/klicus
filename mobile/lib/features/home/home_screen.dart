@@ -5,10 +5,14 @@ import 'dart:ui';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/api_service.dart';
+import '../../core/repositories/ad_repository.dart';
 import '../../models/ad_model.dart';
 import 'ad_detail_screen.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../../core/widgets/shimmer_loaders.dart';
+import '../../core/widgets/offline_banner.dart';
+import '../../core/services/favorites_provider.dart';
+import '../../core/services/image_cache_manager.dart';
 import '../../core/nav_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'widgets/banner_carousel.dart';
@@ -38,6 +42,13 @@ class _HomeScreenState extends State<HomeScreen> {
   
   final List<String> _cities = ['Todas', 'Ocaña', 'Cúcuta', 'Abrego', 'Convención', 'Aguachica'];
 
+  // Pagination
+  int _currentPage = 1;
+  static const int _pageSize = 12;
+  bool _hasMorePages = true;
+  bool _isFetchingMore = false;
+  final ScrollController _scrollController = ScrollController();
+
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final LayerLink _searchLayerLink = LayerLink();
@@ -50,6 +61,14 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _fetchInitialData();
     _searchFocusNode.addListener(_onSearchFocusChanged);
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+              _scrollController.position.maxScrollExtent - 300 &&
+          !_isFetchingMore &&
+          _hasMorePages) {
+        _fetchMoreAds();
+      }
+    });
   }
 
   void _onSearchFocusChanged() {
@@ -148,6 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _scrollController.dispose();
     _searchController.dispose();
     _searchFocusNode.removeListener(_onSearchFocusChanged);
     _searchFocusNode.dispose();
@@ -179,20 +199,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchAds() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _currentPage = 1;
+      _hasMorePages = true;
+    });
     try {
-      final api = context.read<ApiService>();
-      final response = await api.get('/pautas', queryParameters: {
-        'category': _selectedCategory,
-        'city': _selectedCity == 'Todas' ? 'all' : _selectedCity,
-        'q': _searchQuery,
-      });
-      
+      final response = await context.read<AdRepository>().fetchAds(
+            category: _selectedCategory,
+            city: _selectedCity == 'Todas' ? 'all' : _selectedCity,
+            query: _searchQuery,
+            page: 1,
+            limit: _pageSize,
+          );
+
       if (response.data['success'] == true) {
         final List<dynamic> adsJson = response.data['data']['ads'];
         setState(() {
           _ads = adsJson.map((json) => AdModel.fromJson(json)).toList();
-          _filteredAds = List.from(_ads); // Now server handles filtering
+          _filteredAds = List.from(_ads);
+          _hasMorePages = adsJson.length == _pageSize;
           _isLoading = false;
         });
       }
@@ -200,6 +226,34 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => _error = 'Sin conexión con el servidor');
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _fetchMoreAds() async {
+    if (_isFetchingMore || !_hasMorePages) return;
+    setState(() => _isFetchingMore = true);
+    try {
+      final nextPage = _currentPage + 1;
+      final response = await context.read<AdRepository>().fetchAds(
+            category: _selectedCategory,
+            city: _selectedCity == 'Todas' ? 'all' : _selectedCity,
+            query: _searchQuery,
+            page: nextPage,
+            limit: _pageSize,
+          );
+      if (response.data['success'] == true) {
+        final List<dynamic> adsJson = response.data['data']['ads'];
+        setState(() {
+          _currentPage = nextPage;
+          _ads.addAll(adsJson.map((json) => AdModel.fromJson(json)));
+          _filteredAds = List.from(_ads);
+          _hasMorePages = adsJson.length == _pageSize;
+        });
+      }
+    } catch (e) {
+      debugPrint('Fetch more ads error: $e');
+    } finally {
+      setState(() => _isFetchingMore = false);
     }
   }
 
@@ -222,12 +276,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchSuggestions(String query) async {
     try {
-      final api = context.read<ApiService>();
-      final response = await api.get('/search', queryParameters: {
-        'q': query,
-        'type': 'suggestions',
-        'limit': 8,
-      });
+      final response = await context.read<AdRepository>().fetchSuggestions(query);
 
       if (response.data != null && response.data['ads'] != null) {
         setState(() {
@@ -293,8 +342,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final scrollView = CustomScrollView(
+      controller: kIsWeb ? null : _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      primary: true, // Key for stability on web
+      primary: kIsWeb,
       slivers: [
           // 1. Custom Sliver App Bar (Title & Actions)
           SliverAppBar(
@@ -303,8 +353,8 @@ class _HomeScreenState extends State<HomeScreen> {
             elevation: 0,
             toolbarHeight: 70,
             expandedHeight: 70, // Consistent height avoids off-screen rendering
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white,
+            backgroundColor: const Color(0xFFE2E000), // KLICUS Yellow
+            surfaceTintColor: const Color(0xFFE2E000),
             title: Text(
               'KLICUS', 
               style: GoogleFonts.outfit(
@@ -318,76 +368,86 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildNotificationAction(),
               _buildUserAvatarAction(),
             ],
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(2),
-              child: Container(color: const Color(0xFFE2E000), height: 2),
-            ),
           ),
 
-          // 2. Search Bar & City Picker (Collapsible)
+          // 2 & 3. Attraction Zone: Search Bar & Promo Banner with Gradient
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-              child: Row(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFFE2E000), // KLICUS Yellow
+                    Color(0xFFF8F9FB), // Neutral Background
+                  ],
+                ),
+              ),
+              child: Column(
                 children: [
-                  Expanded(
-                    child: CompositedTransformTarget(
-                      link: _searchLayerLink,
-                      child: Container(
-                        height: 50,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: Colors.grey[100]!),
-                        ),
-                        child: TextField(
-                          controller: _searchController,
-                          focusNode: _searchFocusNode,
-                          onChanged: _onSearchChanged,
-                          decoration: const InputDecoration(
-                            hintText: 'Busca productos o servicios...',
-                            hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
-                            border: InputBorder.none,
-                            icon: Icon(Icons.search, color: Color(0xFF0E2244), size: 18),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: CompositedTransformTarget(
+                            link: _searchLayerLink,
+                            child: Container(
+                              height: 50,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white, // Pop from gradient
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(color: Colors.white.withOpacity(0.5)),
+                                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                              ),
+                              child: TextField(
+                                controller: _searchController,
+                                focusNode: _searchFocusNode,
+                                onChanged: _onSearchChanged,
+                                decoration: const InputDecoration(
+                                  hintText: 'Busca productos o servicios...',
+                                  hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
+                                  border: InputBorder.none,
+                                  icon: Icon(Icons.search, color: Color(0xFF0E2244), size: 18),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  GestureDetector(
-                    onTap: _showCityPicker,
-                    child: Container(
-                      height: 50,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE2E000),
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
-                      ),
-                      child: Center(
-                        child: Row(
-                          children: [
-                            const Icon(Icons.location_on, size: 16, color: Color(0xFF0E2244)),
-                            const SizedBox(width: 6),
-                            Text(
-                              _selectedCity == 'Todas' ? 'Ciudad' : _selectedCity,
-                              style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF0E2244)),
+                        const SizedBox(width: 12),
+                        GestureDetector(
+                          onTap: _showCityPicker,
+                          child: Container(
+                            height: 50,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0E2244), // Contrast color for picker
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
                             ),
-                          ],
+                            child: Center(
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.location_on, size: 16, color: Colors.white),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    _selectedCity == 'Todas' ? 'Ciudad' : _selectedCity,
+                                    style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
+                  const BannerCarousel(),
+                  const SizedBox(height: 10),
                 ],
               ),
             ),
-          ),
-
-          // 3. Promo Banner (Collapsible)
-          const SliverToBoxAdapter(
-            child: BannerCarousel(),
           ),
 
           // 4. Categories Bar (Sticky/Pinned)
@@ -395,7 +455,7 @@ class _HomeScreenState extends State<HomeScreen> {
             pinned: true,
             delegate: _SliverCategoryDelegate(
               child: Container(
-                color: Colors.white,
+                color: const Color(0xFFF8F9FB), // Neutral Background
                 padding: const EdgeInsets.only(top: 10),
                 child: _buildCategoryBar(),
               ),
@@ -408,9 +468,51 @@ class _HomeScreenState extends State<HomeScreen> {
             sliver: _isLoading 
               ? const SliverToBoxAdapter(child: ShimmerAdGrid()) 
               : _filteredAds.isEmpty
-                ? const SliverFillRemaining(
+                ? SliverFillRemaining(
                     hasScrollBody: false,
-                    child: Center(child: Text('No se encontraron resultados', style: TextStyle(color: Colors.grey))),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.02),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: Icon(Icons.search_off_rounded, size: 48, color: const Color(0xFF0E2244).withOpacity(0.2)),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            'SIN RESULTADOS',
+                            style: GoogleFonts.outfit(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFF0E2244).withOpacity(0.4),
+                              letterSpacing: 2,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Intenta buscar algo diferente\no explora otra categoría.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: Colors.grey[500],
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 60), // Offset visual
+                        ],
+                      ),
+                    ),
                   )
                 : SliverGrid(
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -436,21 +538,40 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          SliverToBoxAdapter(
+            child: _isFetchingMore
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF0E2244),
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  )
+                : const SizedBox(height: 100),
+          ),
         ],
       );
 
     final Widget mainContent = kIsWeb ? scrollView : AnimationLimiter(child: scrollView);
 
     return Scaffold(
-      body: kIsWeb 
-        ? mainContent 
-        : RefreshIndicator(
-            key: _refreshIndicatorKey,
-            onRefresh: _fetchAds,
-            color: const Color(0xFF0E2244),
-            child: mainContent,
+      body: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(
+            child: kIsWeb
+                ? mainContent
+                : RefreshIndicator(
+                    key: _refreshIndicatorKey,
+                    onRefresh: _fetchAds,
+                    color: const Color(0xFF0E2244),
+                    child: mainContent,
+                  ),
           ),
+        ],
+      ),
     );
   }
 
@@ -526,9 +647,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: CircleAvatar(
                 radius: 20,
-                backgroundColor: isAuth ? const Color(0xFFE2E000) : Colors.grey[100],
+                backgroundColor: isAuth ? Colors.white : Colors.grey[100],
                 backgroundImage: (isAuth && user?['avatar_url'] != null && user!['avatar_url'].toString().isNotEmpty) 
-                  ? CachedNetworkImageProvider(ApiService.normalizeUrl(user!['avatar_url'])) 
+                  ? CachedNetworkImageProvider(ApiService.normalizeUrl(user!['avatar_url']), cacheManager: KlicusCacheManager.instance)
                   : null,
                 child: (isAuth && (user?['avatar_url'] == null || user!['avatar_url'].toString().isEmpty))
                   ? Text(
@@ -622,96 +743,279 @@ class _AdCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => AdDetailScreen(ad: ad)));
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
+    final bool isDiamond = ad.priorityLevel == 'diamond';
+    final bool isPro = ad.priorityLevel == 'pro';
+
+    Widget cardContent = Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBFBFC), // Premium Card Background
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          if (isDiamond)
+            BoxShadow(
+              color: const Color(0xFFE2E000).withOpacity(0.2), // Diamond Glow
+              blurRadius: 30,
+              offset: const Offset(0, 10),
+            )
+          else
             BoxShadow(
               color: Colors.black.withOpacity(0.03),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    CachedNetworkImage(
-                      imageUrl: ApiService.normalizeUrl(ad.firstImage),
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(color: Colors.grey[50]),
-                      errorWidget: (context, url, error) => Container(
-                        color: Colors.grey[50],
-                        child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
-                      ),
-                    ),
-                    if (ad.priorityLevel == 'diamond')
-                      Positioned(
-                        top: 12,
-                        left: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE2E000),
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
-                          ),
-                          child: const Text('ELITE', 
-                            style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Color(0xFF0E2244))),
+        ],
+      ),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      CachedNetworkImage(
+                        imageUrl: ApiService.normalizeUrl(ad.firstImage),
+                        cacheManager: KlicusCacheManager.instance,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(color: Colors.grey[50]),
+                        errorWidget: (context, url, error) => Container(
+                          color: Colors.grey[50],
+                          child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
                         ),
                       ),
-                  ],
+                      if (isDiamond)
+                        Positioned(
+                          top: 12,
+                          left: 12,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.15), // Glass effect
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFFFFD700).withOpacity(0.6), width: 1), // Metallic border
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.diamond_outlined, color: Color(0xFF0E2244), size: 10),
+                                    const SizedBox(width: 4),
+                                    const Text('ELITE', 
+                                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF0E2244), letterSpacing: 0.5)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                      else if (isPro)
+                        Positioned(
+                          top: 12,
+                          left: 12,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0E2244).withOpacity(0.65), // Blue Glass effect
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.white.withOpacity(0.2), width: 1), // Light border
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.star_rounded, color: Colors.white, size: 10),
+                                    const SizedBox(width: 4),
+                                    const Text('PRO', 
+                                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        ad.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.w900, 
+                          fontSize: 14, 
+                          color: const Color(0xFF0E2244), 
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, size: 10, color: Color(0xFFE2E000)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              ad.location,
+                              style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isDiamond)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 3,
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.only(bottomLeft: Radius.circular(24), bottomRight: Radius.circular(24)),
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFFFD700), Color(0xFFFDB931)], // Metallic gold accent
+                  ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ad.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.outfit(
-                        fontWeight: FontWeight.w900, 
-                        fontSize: 14, 
-                        color: const Color(0xFF0E2244), // Contrast Fix: Navy instead of Yellow
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, size: 10, color: Color(0xFFE2E000)),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            ad.location,
-                            style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+            ),
+        ],
+      ),
+    );
+
+    if (isDiamond) {
+      cardContent = _DiamondShine(child: cardContent);
+    }
+
+    return Consumer<FavoritesProvider>(
+      builder: (context, favs, _) {
+        final isFav = favs.isFavorite(ad.id.toString());
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => AdDetailScreen(ad: ad)));
+          },
+          child: Stack(
+            children: [
+              cardContent,
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () => favs.toggle(ad.id.toString()),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8)
                       ],
                     ),
-                  ],
+                    child: Icon(
+                      isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                      size: 16,
+                      color: isFav ? Colors.red[400] : Colors.grey[400],
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+}
+
+class _DiamondShine extends StatefulWidget {
+  final Widget child;
+  const _DiamondShine({required this.child});
+
+  @override
+  State<_DiamondShine> createState() => _DiamondShineState();
+}
+
+class _DiamondShineState extends State<_DiamondShine> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
+    _animation = Tween<double>(begin: -1.0, end: 2.0).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    
+    _timer = Timer.periodic(const Duration(seconds: 7), (timer) {
+      if (mounted) {
+        _controller.forward(from: 0.0);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        widget.child,
+        Positioned.fill(
+          child: IgnorePointer(
+            child: AnimatedBuilder(
+              animation: _animation,
+              builder: (context, child) {
+                if (!_controller.isAnimating) return const SizedBox.shrink();
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: FractionallySizedBox(
+                    widthFactor: 2.0,
+                    alignment: Alignment(_animation.value, 0),
+                    child: Transform.rotate(
+                      angle: 0.3,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.white.withOpacity(0.0),
+                              Colors.white.withOpacity(0.4),
+                              Colors.white.withOpacity(0.0),
+                            ],
+                            stops: const [0.4, 0.5, 0.6],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -723,7 +1027,7 @@ class _SliverCategoryDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: Colors.white,
+      color: const Color(0xFFF8F9FB), // Neutral Background
       child: child,
     );
   }

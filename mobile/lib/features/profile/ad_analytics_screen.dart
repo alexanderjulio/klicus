@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/analytics_service.dart';
 import '../../models/ad_model.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AdAnalyticsScreen extends StatefulWidget {
   final AdModel ad;
@@ -42,22 +43,28 @@ class _AdAnalyticsScreenState extends State<AdAnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const navy = Color(0xFF0E2244);
+    const yellow = Color(0xFFE2E000);
+    const bg = Color(0xFFF8F9FB);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bg,
       appBar: AppBar(
-        title: Text(widget.ad.title.toUpperCase()),
-        backgroundColor: Colors.white,
+        title: Text(
+          widget.ad.title.toUpperCase(),
+          style: GoogleFonts.outfit(color: navy, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
+        ),
+        backgroundColor: bg,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: const TextStyle(color: Color(0xFFE2E000), fontWeight: FontWeight.w900, fontSize: 16),
-        iconTheme: const IconThemeData(color: Color(0xFFE2E000)),
+        iconTheme: const IconThemeData(color: navy),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('ANÁLISIS DE RENDIMIENTO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.grey)),
+            Text('ANÁLISIS DE RENDIMIENTO', style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2, color: navy.withOpacity(0.4))),
             const SizedBox(height: 24),
             
             _buildRangeSelector(),
@@ -117,34 +124,39 @@ class _AdAnalyticsScreenState extends State<AdAnalyticsScreen> {
   }
 
   Widget _buildSummaryCards() {
-    final totals = _data!['totals'];
+    final stats = _data!['stats'] ?? {};
     return Row(
       children: [
-        _statCard('VISTAS', totals['total_views'].toString(), Icons.visibility),
+        _statCard('VISTAS', (stats['views'] ?? 0).toString(), Icons.visibility),
         const SizedBox(width: 12),
-        _statCard('CONTACTOS', totals['total_contacts'].toString(), Icons.message),
+        _statCard('CONTACTOS', (stats['contacts'] ?? 0).toString(), Icons.message),
       ],
     );
   }
 
   Widget _statCard(String label, String value, IconData icon) {
+    const navy = Color(0xFF0E2244);
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: const Color(0xFFE2E000),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
-            BoxShadow(color: const Color(0xFFE2E000).withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10)),
+            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5)),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: const Color(0xFF0E2244), size: 18),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: const Color(0xFFE2E000).withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(icon, color: const Color(0xFFE2E000), size: 18),
+            ),
             const SizedBox(height: 16),
-            Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-            Text(label, style: const TextStyle(color: Colors.grey, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+            Text(value, style: GoogleFonts.outfit(color: navy, fontSize: 24, fontWeight: FontWeight.w900)),
+            Text(label, style: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
           ],
         ),
       ),
@@ -152,7 +164,7 @@ class _AdAnalyticsScreenState extends State<AdAnalyticsScreen> {
   }
 
   Widget _buildChart() {
-    final List daily = _data!['daily'];
+    final List daily = _data!['timeSeries'] ?? [];
     if (daily.isEmpty) return const Center(child: Text('Sin actividad reciente'));
 
     return SizedBox(
@@ -165,7 +177,8 @@ class _AdAnalyticsScreenState extends State<AdAnalyticsScreen> {
           lineBarsData: [
             LineChartBarData(
               spots: daily.asMap().entries.map((e) {
-                return FlSpot(e.key.toDouble(), (e.value['views'] as int).toDouble());
+                final viewCount = double.tryParse(e.value['views'].toString()) ?? 0.0;
+                return FlSpot(e.key.toDouble(), viewCount);
               }).toList(),
               isCurved: true,
               color: const Color(0xFFE2E000),

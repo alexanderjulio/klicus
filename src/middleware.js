@@ -49,7 +49,7 @@ export function middleware(request) {
 
   // CORS
   const origin = request.headers.get('origin');
-  const originAllowed = origin && ALLOWED_ORIGINS.includes(origin);
+  const originAllowed = origin && (ALLOWED_ORIGINS.includes(origin) || origin.startsWith('http://localhost:'));
 
   if (request.method === 'OPTIONS') {
     const preflight = new NextResponse(null, { status: 200 });

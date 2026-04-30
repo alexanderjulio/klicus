@@ -7,7 +7,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/chat_service.dart';
+import '../../core/services/chat_ws_service.dart';
 import '../../core/api_service.dart';
+import '../../core/repositories/chat_repository.dart';
+import '../../core/widgets/offline_banner.dart';
+import '../../core/services/image_cache_manager.dart';
 import '../auth/auth_provider.dart';
 
 class ChatDetailScreen extends StatefulWidget {
@@ -27,6 +31,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   List<dynamic> _messages = [];
   bool _isLoading = true;
   Timer? _pollingTimer;
+  ChatWsService? _wsService;
 
   String? _currentGuestId;
 
@@ -35,14 +40,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _chatService = ChatService(context.read<ApiService>());
+    _chatService = context.read<ChatRepository>();
     _loadGuestId();
     if (widget.conversation == null || widget.conversation['id'] == null) {
       _isLoading = false;
       return;
     }
     _fetchMessages();
-    _startPolling();
+    _initTransport();
   }
 
   Future<void> _loadGuestId() async {
@@ -53,14 +58,33 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   void dispose() {
     _pollingTimer?.cancel();
+    _wsService?.disconnect();
     _msgController.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
+  Future<void> _initTransport() async {
+    final convId = widget.conversation?['id'];
+    if (convId == null) return;
+
+    _wsService = ChatWsService(
+      conversationId: convId is int ? convId : int.tryParse(convId.toString()) ?? 0,
+      onNewMessage: () => _fetchMessages(silent: true),
+    );
+
+    final connected = await _wsService!.connect();
+    if (!connected && mounted) {
+      // WS unavailable — fall back to 5s polling
+      _startPolling();
+    }
+  }
+
   void _startPolling() {
-    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) => _fetchMessages(silent: true));
+    if (_pollingTimer != null && _pollingTimer!.isActive) return;
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) => _fetchMessages(silent: true));
   }
 
   Future<void> _fetchMessages({bool silent = false}) async {
@@ -184,8 +208,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       ),
       body: Column(
         children: [
+          const OfflineBanner(),
           Expanded(
-            child: _isLoading 
+            child: _isLoading
               ? const Center(child: CircularProgressIndicator(color: navy))
               : ListView.builder(
                   controller: _scrollController,
@@ -286,6 +311,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 borderRadius: BorderRadius.circular(12),
                 child: CachedNetworkImage(
                   imageUrl: ApiService.normalizeUrl(msg['content']),
+                  cacheManager: KlicusCacheManager.instance,
                   placeholder: (context, url) => Container(height: 200, width: 200, color: Colors.grey[200]),
                   errorWidget: (context, url, error) => const Icon(Icons.error),
                 ),

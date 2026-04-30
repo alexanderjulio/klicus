@@ -1,13 +1,21 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/api_service.dart';
+import '../../core/repositories/ad_repository.dart';
 import '../../models/ad_model.dart';
 import '../auth/auth_provider.dart';
 
@@ -26,11 +34,21 @@ class _EditAdScreenState extends State<EditAdScreen> {
   late TextEditingController _priceController;
   late TextEditingController _cellphoneController;
   late TextEditingController _webController;
+  late TextEditingController _phoneController;
+  late TextEditingController _emailController;
+  late TextEditingController _facebookController;
+  late TextEditingController _instagramController;
+  late TextEditingController _businessHoursController;
+  late TextEditingController _addressController;
+  late TextEditingController _deliveryInfoController;
   
   late List<String> _currentImageUrls;
   final List<XFile> _newImages = [];
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
+
+  Timer? _draftTimer;
+  static const _draftPrefix = 'klicus_draft_';
 
   @override
   void initState() {
@@ -41,15 +59,131 @@ class _EditAdScreenState extends State<EditAdScreen> {
     _priceController = TextEditingController(text: widget.ad.priceRange ?? '');
     _cellphoneController = TextEditingController(text: widget.ad.cellphone ?? '');
     _webController = TextEditingController(text: widget.ad.websiteUrl ?? '');
+    _phoneController = TextEditingController(text: widget.ad.phone ?? '');
+    _emailController = TextEditingController(text: widget.ad.email ?? '');
+    _facebookController = TextEditingController(text: widget.ad.facebookUrl ?? '');
+    _instagramController = TextEditingController(text: widget.ad.instagramUrl ?? '');
+    _businessHoursController = TextEditingController(text: widget.ad.businessHours ?? '');
+    _addressController = TextEditingController(text: widget.ad.address ?? '');
+    _deliveryInfoController = TextEditingController(text: widget.ad.deliveryInfo ?? '');
     _currentImageUrls = List.from(widget.ad.imageUrls);
+    _loadDraft();
+    _draftTimer = Timer.periodic(const Duration(seconds: 3), (_) => _saveDraft());
+  }
+
+  @override
+  void dispose() {
+    _draftTimer?.cancel();
+    _titleController.dispose();
+    _descController.dispose();
+    _locationController.dispose();
+    _priceController.dispose();
+    _cellphoneController.dispose();
+    _webController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _facebookController.dispose();
+    _instagramController.dispose();
+    _businessHoursController.dispose();
+    _addressController.dispose();
+    _deliveryInfoController.dispose();
+    super.dispose();
+  }
+
+  String get _draftKey => '$_draftPrefix${widget.ad.id}';
+
+  Future<void> _saveDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    final map = {
+      'title': _titleController.text,
+      'description': _descController.text,
+      'location': _locationController.text,
+      'price_range': _priceController.text,
+      'cellphone': _cellphoneController.text,
+      'website_url': _webController.text,
+      'phone': _phoneController.text,
+      'email': _emailController.text,
+      'facebook_url': _facebookController.text,
+      'instagram_url': _instagramController.text,
+      'business_hours': _businessHoursController.text,
+      'address': _addressController.text,
+      'delivery_info': _deliveryInfoController.text,
+    };
+    await prefs.setString(_draftKey, jsonEncode(map));
+  }
+
+  Future<void> _loadDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_draftKey);
+    if (raw == null) return;
+    try {
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      if (mounted) {
+        setState(() {
+          if ((map['title'] as String? ?? '').isNotEmpty) _titleController.text = map['title'];
+          if ((map['description'] as String? ?? '').isNotEmpty) _descController.text = map['description'];
+          if ((map['location'] as String? ?? '').isNotEmpty) _locationController.text = map['location'];
+          if ((map['price_range'] as String? ?? '').isNotEmpty) _priceController.text = map['price_range'];
+          if ((map['cellphone'] as String? ?? '').isNotEmpty) _cellphoneController.text = map['cellphone'];
+          if ((map['website_url'] as String? ?? '').isNotEmpty) _webController.text = map['website_url'];
+          if ((map['phone'] as String? ?? '').isNotEmpty) _phoneController.text = map['phone'];
+          if ((map['email'] as String? ?? '').isNotEmpty) _emailController.text = map['email'];
+          if ((map['facebook_url'] as String? ?? '').isNotEmpty) _facebookController.text = map['facebook_url'];
+          if ((map['instagram_url'] as String? ?? '').isNotEmpty) _instagramController.text = map['instagram_url'];
+          if ((map['business_hours'] as String? ?? '').isNotEmpty) _businessHoursController.text = map['business_hours'];
+          if ((map['address'] as String? ?? '').isNotEmpty) _addressController.text = map['address'];
+          if ((map['delivery_info'] as String? ?? '').isNotEmpty) _deliveryInfoController.text = map['delivery_info'];
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _clearDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_draftKey);
   }
 
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
+      final compressed = await _compressImage(image);
       setState(() {
-        _newImages.add(image);
+        _newImages.add(compressed);
       });
+    }
+  }
+
+  Future<XFile> _compressImage(XFile original) async {
+    if (kIsWeb) return original;
+    try {
+      final dir = await getTemporaryDirectory();
+      final targetPath = '${dir.path}/c_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final result = await FlutterImageCompress.compressAndGetFile(
+        original.path,
+        targetPath,
+        quality: 85,
+        minWidth: 1280,
+        minHeight: 1280,
+        keepExif: false,
+      );
+      if (result == null) return original;
+      // If still > 1MB, compress harder
+      final size = await result.length();
+      if (size > 1024 * 1024) {
+        final retry = await FlutterImageCompress.compressAndGetFile(
+          result.path,
+          '${dir.path}/c2_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          quality: 60,
+          minWidth: 960,
+          minHeight: 960,
+          keepExif: false,
+        );
+        if (retry != null) return XFile(retry.path);
+      }
+      return XFile(result.path);
+    } catch (e) {
+      debugPrint('Image compression error: $e');
+      return original;
     }
   }
 
@@ -69,18 +203,35 @@ class _EditAdScreenState extends State<EditAdScreen> {
     if (permission == LocationPermission.deniedForever) return;
 
     final position = await Geolocator.getCurrentPosition();
-    // For now, we'll just show the coordinates or simple title 
-    // In a real app, we'd reverse geocode here.
-    setState(() {
-      _locationController.text = "GPS: ${position.latitude.toStringAsFixed(3)}, ${position.longitude.toStringAsFixed(3)}";
-    });
+    try {
+      final placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+      if (placemarks.isNotEmpty && mounted) {
+        final p = placemarks.first;
+        final parts = [p.locality, p.administrativeArea, p.country]
+            .where((s) => s != null && s!.isNotEmpty)
+            .join(', ');
+        setState(() {
+          _locationController.text = parts.isNotEmpty
+              ? parts
+              : '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _locationController.text =
+              '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+        });
+      }
+    }
   }
 
   Future<void> _saveChanges() async {
     setState(() => _isLoading = true);
     try {
-      final api = context.read<ApiService>();
-      
       // Use dio.FormData which correctly handles lists of keys
       final formDataMap = {
         'title': _titleController.text,
@@ -89,6 +240,13 @@ class _EditAdScreenState extends State<EditAdScreen> {
         'price_range': _priceController.text,
         'cellphone': _cellphoneController.text,
         'website_url': _webController.text,
+        'phone': _phoneController.text,
+        'email': _emailController.text,
+        'facebook_url': _facebookController.text,
+        'instagram_url': _instagramController.text,
+        'business_hours': _businessHoursController.text,
+        'address': _addressController.text,
+        'delivery_info': _deliveryInfoController.text,
         'kept_images': _currentImageUrls, 
       };
 
@@ -114,9 +272,10 @@ class _EditAdScreenState extends State<EditAdScreen> {
         }
       }
 
-      final response = await api.put("/anuncio/${widget.ad.id}", data: formData);
+      final response = await context.read<AdRepository>().updateAd(widget.ad.id.toString(), formData);
       
       if (response.statusCode == 200) {
+        await _clearDraft();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Anuncio actualizado con éxito')));
           Navigator.pop(context, true);
@@ -143,15 +302,21 @@ class _EditAdScreenState extends State<EditAdScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const navy = Color(0xFF0E2244);
+    const yellow = Color(0xFFE2E000);
+    const bg = Color(0xFFF8F9FB);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bg,
       appBar: AppBar(
-        title: const Text('EDITAR ANUNCIO'),
-        backgroundColor: Colors.white,
+        title: Text(
+          'EDITAR ANUNCIO',
+          style: GoogleFonts.outfit(color: navy, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
+        ),
+        backgroundColor: bg,
         elevation: 0,
-        centerTitle: false,
-        titleTextStyle: const TextStyle(color: Color(0xFFE2E000), fontWeight: FontWeight.w900, fontSize: 18),
-        iconTheme: const IconThemeData(color: Color(0xFFE2E000)),
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: navy),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -171,14 +336,16 @@ class _EditAdScreenState extends State<EditAdScreen> {
                   padding: const EdgeInsets.only(top: 20),
                   child: IconButton(
                     onPressed: _getCurrentLocation,
-                    icon: const Icon(Icons.my_location, color: Color(0xFFE2E000)),
-                    style: IconButton.styleFrom(backgroundColor: Colors.grey[100], padding: const EdgeInsets.all(16)),
+                    icon: const Icon(Icons.my_location, color: navy),
+                    style: IconButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(16), elevation: 1, shadowColor: Colors.black12),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 24),
 
+            _buildTextField(label: 'DIRECCIÓN EXACTA', controller: _addressController),
+            const SizedBox(height: 24),
             Row(
               children: [
                 Expanded(child: _buildTextField(label: 'PRECIO / RANGO', controller: _priceController, keyboardType: TextInputType.text, hint: 'Ej: 50.000 - 100.000')),
@@ -187,10 +354,32 @@ class _EditAdScreenState extends State<EditAdScreen> {
               ],
             ),
             const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(child: _buildTextField(label: 'TELÉFONO FIJO', controller: _phoneController, keyboardType: TextInputType.phone)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildTextField(label: 'CORREO ELECTRÓNICO', controller: _emailController, keyboardType: TextInputType.emailAddress)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildTextField(label: 'HORARIO DE ATENCIÓN', controller: _businessHoursController, hint: 'Ej: Lunes a Viernes 8am - 6pm'),
+            const SizedBox(height: 24),
+            _buildTextField(label: 'INFO. DE ENVÍO / DOMICILIO', controller: _deliveryInfoController, hint: 'Ej: Envíos gratis a todo el país'),
+            const SizedBox(height: 32),
+            Text('ENLACES Y REDES SOCIALES', style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2, color: navy.withOpacity(0.4))),
+            const SizedBox(height: 16),
             _buildTextField(label: 'SITIO WEB / LINK', controller: _webController, keyboardType: TextInputType.url, hint: 'https://...'),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(child: _buildTextField(label: 'FACEBOOK URL', controller: _facebookController, keyboardType: TextInputType.url)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildTextField(label: 'INSTAGRAM URL', controller: _instagramController, keyboardType: TextInputType.url)),
+              ],
+            ),
             
             const SizedBox(height: 32),
-            const Text('IMÁGENES', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.grey)),
+            Text('IMÁGENES', style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2, color: navy.withOpacity(0.4))),
             const SizedBox(height: 12),
             
             Wrap(
@@ -237,12 +426,14 @@ class _EditAdScreenState extends State<EditAdScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _saveChanges,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE2E000),
+                  backgroundColor: navy,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  elevation: 5,
+                  shadowColor: navy.withOpacity(0.3),
                 ),
                 child: _isLoading 
-                  ? const CircularProgressIndicator(color: Color(0xFF0E2244))
-                  : const Text('GUARDAR CAMBIOS', style: TextStyle(color: Color(0xFF0E2244), fontWeight: FontWeight.w900, letterSpacing: 1)),
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : Text('GUARDAR CAMBIOS', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 14)),
               ),
             ),
           ],
@@ -258,23 +449,33 @@ class _EditAdScreenState extends State<EditAdScreen> {
     TextInputType keyboardType = TextInputType.text,
     String? hint,
   }) {
+    const navy = Color(0xFF0E2244);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.grey)),
+        Text(label, style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2, color: navy.withOpacity(0.4))),
         const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          maxLines: maxLines,
-          keyboardType: keyboardType,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[300], fontSize: 12, fontWeight: FontWeight.normal),
-            filled: true,
-            fillColor: Colors.grey[50],
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5)),
+            ],
+          ),
+          child: TextField(
+            controller: controller,
+            maxLines: maxLines,
+            keyboardType: keyboardType,
+            style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: navy),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: GoogleFonts.inter(color: Colors.grey[400], fontSize: 12, fontWeight: FontWeight.normal),
+              filled: true,
+              fillColor: Colors.transparent,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            ),
           ),
         ),
       ],

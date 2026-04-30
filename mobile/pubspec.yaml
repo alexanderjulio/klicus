@@ -34,7 +34,17 @@ dependencies:
   # Native Features
   image_picker: ^1.0.7
   geolocator: ^10.1.0
+  geocoding: ^3.0.0
+  flutter_image_compress: ^2.2.0
+  path_provider: ^2.1.2
   http: ^1.1.0
+
+  # Connectivity
+  connectivity_plus: ^6.0.3
+
+  # Cache & Real-time
+  flutter_cache_manager: ^3.3.1
+  web_socket_channel: ^2.4.0
 
   # Firebase & Notifications
   firebase_core: ^3.0.0
@@ -46,9 +56,26 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.4
 
 flutter:
   uses-material-design: true
 
 dependency_overrides:
   geolocator_android: 4.6.1
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon.png"
+  web:
+    generate: true
+    image_path: "assets/icon.png"
+
+flutter_native_splash:
+  color: "#E0E000"
+  image: "assets/splash_padded.png"
+  android_12:
+    color: "#E0E000"
+    image: "assets/splash_padded.png"

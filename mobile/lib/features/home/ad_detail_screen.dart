@@ -12,6 +12,8 @@ import '../profile/edit_ad_screen.dart';
 import '../../core/services/push_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/chat_service.dart';
+import '../../core/services/favorites_provider.dart';
+import '../../core/services/image_cache_manager.dart';
 import '../../features/chat/chat_detail_screen.dart';
 
 class AdDetailScreen extends StatefulWidget {
@@ -233,7 +235,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
     final yellow = const Color(0xFFE2E000);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FA),
+      backgroundColor: const Color(0xFFF8F9FB),
       body: CustomScrollView(
         slivers: [
           // HEADER GALLERY
@@ -259,6 +261,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                     itemBuilder: (context, index) {
                       return CachedNetworkImage(
                         imageUrl: ApiService.normalizeUrl(widget.ad.imageUrls.isNotEmpty ? widget.ad.imageUrls[index] : widget.ad.firstImage),
+                        cacheManager: KlicusCacheManager.instance,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(color: Colors.grey[200]),
                         errorWidget: (context, url, error) => const Icon(Icons.error),
@@ -315,6 +318,24 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
               ),
             ),
             actions: [
+              Consumer<FavoritesProvider>(
+                builder: (context, favs, _) {
+                  final isFav = favs.isFavorite(widget.ad.id.toString());
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: CircleAvatar(
+                      backgroundColor: Colors.white.withOpacity(0.9),
+                      child: IconButton(
+                        icon: Icon(
+                          isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                          color: isFav ? Colors.red[400] : navy,
+                        ),
+                        onPressed: () => favs.toggle(widget.ad.id.toString()),
+                      ),
+                    ),
+                  );
+                },
+              ),
               if (isOwner)
                 Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -334,7 +355,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
             child: Container(
               transform: Matrix4.translationValues(0, -20, 0),
               decoration: const BoxDecoration(
-                color: Color(0xFFF4F7FA),
+                color: Color(0xFFF8F9FB),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
               ),
               child: Padding(
@@ -342,6 +363,32 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (widget.ad.priorityLevel == 'diamond' || widget.ad.priorityLevel == 'pro') ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: widget.ad.priorityLevel == 'diamond' ? yellow.withOpacity(0.15) : navy.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: widget.ad.priorityLevel == 'diamond' ? yellow : navy.withOpacity(0.3), width: 1),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              widget.ad.priorityLevel == 'diamond' ? Icons.diamond_outlined : Icons.star_rounded, 
+                              color: navy, 
+                              size: 12
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              widget.ad.priorityLevel == 'diamond' ? 'ANUNCIO ELITE' : 'ANUNCIO PRO', 
+                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: navy, letterSpacing: 1)
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     // TOP BAR: CATEGORY & DATE
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,

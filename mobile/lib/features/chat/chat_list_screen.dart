@@ -2,9 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../core/services/image_cache_manager.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/chat_service.dart';
 import '../../core/api_service.dart';
+import '../../core/repositories/chat_repository.dart';
 import '../auth/auth_provider.dart';
 import 'chat_detail_screen.dart';
 
@@ -25,7 +27,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   void initState() {
     super.initState();
-    _chatService = ChatService(context.read<ApiService>());
+    _chatService = context.read<ChatRepository>();
     _fetchConversations();
     _startAutoRefresh();
   }
@@ -69,7 +71,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     const yellow = Color(0xFFE2E000);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FA),
+      backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar(
         title: Text(
           'KLICUS 💎',
@@ -123,7 +125,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
           radius: 28,
           backgroundColor: yellow.withOpacity(0.1),
           backgroundImage: (chat['seller_avatar'] != null && !isSeller) 
-              ? CachedNetworkImageProvider(ApiService.normalizeUrl(chat['seller_avatar'])) 
+              ? CachedNetworkImageProvider(ApiService.normalizeUrl(chat['seller_avatar']), cacheManager: KlicusCacheManager.instance) 
               : null,
           child: (chat['seller_avatar'] == null || isSeller) ? Icon(Icons.person, color: navy) : null,
         ),
@@ -180,16 +182,27 @@ class _ChatListScreenState extends State<ChatListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.chat_bubble_outline_rounded, size: 80, color: navy.withOpacity(0.05)),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 10)),
+              ],
+            ),
+            child: Icon(Icons.chat_bubble_outline_rounded, size: 48, color: navy.withOpacity(0.2)),
+          ),
           const SizedBox(height: 24),
           Text(
             'SIN CONVERSACIONES',
-            style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: navy, fontSize: 14, letterSpacing: 1),
+            style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: navy.withOpacity(0.4), fontSize: 16, letterSpacing: 2),
           ),
           const SizedBox(height: 8),
           Text(
-            'Inicia un chat desde cualquier anuncio.',
-            style: GoogleFonts.inter(color: Colors.grey, fontSize: 12),
+            'Inicia un chat desde cualquier anuncio\npara contactar al vendedor.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(color: Colors.grey[500], fontSize: 13, height: 1.5),
           ),
         ],
       ),

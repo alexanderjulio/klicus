@@ -11,6 +11,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -67,31 +68,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 48),
 
                 // FORM FIELDS
-                _buildEliteField(
-                  controller: _nameController,
-                  label: 'NOMBRE COMPLETO',
-                  hint: 'Juan Pérez',
-                  icon: Icons.person_outline_rounded,
-                  navy: navy,
-                ),
-                const SizedBox(height: 24),
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      _buildEliteField(
+                        controller: _nameController,
+                        label: 'NOMBRE COMPLETO',
+                        hint: 'Juan Pérez',
+                        icon: Icons.person_outline_rounded,
+                        navy: navy,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Ingresa tu nombre';
+                          if (v.trim().length < 3) return 'Nombre muy corto';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
 
-                _buildEliteField(
-                  controller: _emailController,
-                  label: 'CORREO ELECTRÓNICO',
-                  hint: 'tu@email.com',
-                  icon: Icons.alternate_email_rounded,
-                  navy: navy,
-                ),
-                const SizedBox(height: 24),
+                      _buildEliteField(
+                        controller: _emailController,
+                        label: 'CORREO ELECTRÓNICO',
+                        hint: 'tu@email.com',
+                        icon: Icons.alternate_email_rounded,
+                        navy: navy,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Ingresa tu correo';
+                          if (!v.contains('@') || !v.contains('.')) return 'Correo inválido';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
 
-                _buildEliteField(
-                  controller: _passwordController,
-                  label: 'CONTRASEÑA',
-                  hint: 'Mínimo 8 caracteres',
-                  icon: Icons.lock_outline_rounded,
-                  isPassword: true,
-                  navy: navy,
+                      _buildEliteField(
+                        controller: _passwordController,
+                        label: 'CONTRASEÑA',
+                        hint: 'Mínimo 8 caracteres',
+                        icon: Icons.lock_outline_rounded,
+                        isPassword: true,
+                        navy: navy,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Ingresa una contraseña';
+                          if (v.length < 8) return 'Mínimo 8 caracteres';
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
                 ),
 
                 if (auth.error != null)
@@ -124,9 +147,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   height: 64,
                   child: ElevatedButton(
                     onPressed: auth.isLoading ? null : () async {
+                      if (!_formKey.currentState!.validate()) return;
                       final success = await auth.register(
-                        _nameController.text,
-                        _emailController.text,
+                        _nameController.text.trim(),
+                        _emailController.text.trim(),
                         _passwordController.text,
                       );
                       if (success && mounted) {
@@ -189,6 +213,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     required IconData icon,
     required Color navy,
     bool isPassword = false,
+    String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,9 +240,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ],
           ),
-          child: TextField(
+          child: TextFormField(
             controller: controller,
             obscureText: isPassword,
+            validator: validator,
             style: GoogleFonts.inter(color: navy, fontWeight: FontWeight.w600),
             decoration: InputDecoration(
               hintText: hint,
@@ -226,6 +252,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide.none,
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Colors.red, width: 1),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Colors.red, width: 1.5),
               ),
               contentPadding: const EdgeInsets.symmetric(vertical: 20),
             ),

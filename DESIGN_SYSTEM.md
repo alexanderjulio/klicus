@@ -5,9 +5,10 @@ Este documento define la identidad visual, los patrones de diseño y las reglas 
 ---
 
 ## 🎨 Paleta de Colores
-La experiencia KLICUS se basa en un contraste entre la energía del amarillo y la sofisticación de los grises neutros.
+La experiencia KLICUS se basa en un contraste entre la energía del amarillo, la elegancia del azul marino y la sofisticación de los grises neutros.
 
-*   **KLICUS Yellow (`#FFF159`)**: Utilizado exclusivamente para la cabecera y el área promocional (banner). Representa la vitalidad del mercado.
+*   **KLICUS Yellow (`#E2E000`)**: Utilizado exclusivamente para la cabecera, botones de llamado a la acción y el área promocional. Representa la vitalidad del mercado.
+*   **KLICUS Navy Blue (`#0E2244`)**: Utilizado para textos principales, iconos activos y elementos de contraste de alta jerarquía.
 *   **Neutral Background (`#F8F9FB`)**: Un gris muy claro que sirve como lienzo para todo el contenido principal, reduciendo la fatiga visual.
 *   **Card Background (`#FBFBFC`)**: Un gris sutilmente más blanco que el fondo general, utilizado para dar relieve a los anuncios.
 
@@ -18,7 +19,7 @@ El layout está dividido en dos zonas de influencia claramente separadas:
 
 1.  **Zona de Atracción (Header Gradient)**:
     *   Contiene el banner promocional.
-    *   Usa un degradado `from-[#FFF159] to-[#F8F9FB]`.
+    *   Usa un degradado `from-[#E2E000] to-[#F8F9FB]`.
     *   **Regla Crítica**: El degradado debe terminar **exactamente** al finalizar el banner. No debe tocar la sección de categorías.
 
 2.  **Zona de Interacción (Categories & Grid)**:

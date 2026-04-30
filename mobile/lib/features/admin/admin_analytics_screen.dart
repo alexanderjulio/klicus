@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../core/api_service.dart';
+import '../../core/repositories/admin_repository.dart';
 import 'admin_approval_screen.dart';
 
 class AdminAnalyticsScreen extends StatefulWidget {
@@ -28,8 +28,8 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
   Future<void> _loadStats() async {
     setState(() => _isLoading = true);
     try {
-      final api = context.read<ApiService>();
-      final res = await api.get('/admin/stats', queryParameters: {'period': _period});
+      final repo = context.read<AdminRepository>();
+      final res = await repo.getStats(period: _period);
       if (res.data['success'] == true) {
         setState(() {
           _data = res.data['data'];

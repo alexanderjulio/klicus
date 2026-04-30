@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_service.dart';
+import '../../core/repositories/admin_repository.dart';
 import '../../models/ad_model.dart';
 import '../home/ad_detail_screen.dart';
 
@@ -27,9 +28,8 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
   Future<void> _loadPendingAds() async {
     setState(() => _isLoading = true);
     try {
-      final api = context.read<ApiService>();
-      // We use the admin/stats endpoint which returns the 'queue' (pending ads)
-      final res = await api.get('/admin/stats'); 
+      final repo = context.read<AdminRepository>();
+      final res = await repo.getStats();
       if (res.data['success'] == true) {
         final List<dynamic> queue = res.data['data']['queue'];
         setState(() {
@@ -49,12 +49,8 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
 
   Future<void> _processAd(String adId, String status, {String? reason}) async {
     try {
-      final api = context.read<ApiService>();
-      final res = await api.post('/admin/approve-ad', data: {
-        'adId': adId,
-        'status': status,
-        'reason': reason ?? 'Aprobado por el administrador',
-      });
+      final repo = context.read<AdminRepository>();
+      final res = await repo.approveAd(adId: adId, status: status, reason: reason);
 
       if (res.data['success'] == true) {
         if (mounted) {

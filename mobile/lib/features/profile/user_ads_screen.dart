@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../core/services/image_cache_manager.dart';
 import '../auth/auth_provider.dart';
 import '../../core/api_service.dart';
+import '../../core/repositories/user_repository.dart';
 import '../../models/ad_model.dart';
 import '../home/ad_detail_screen.dart';
 import 'edit_ad_screen.dart';
 import 'ad_analytics_screen.dart';
+import 'upgrade_ad_screen.dart';
 
 class UserAdsScreen extends StatefulWidget {
   const UserAdsScreen({super.key});
@@ -31,9 +34,7 @@ class _UserAdsScreenState extends State<UserAdsScreen> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final api = context.read<ApiService>();
-      // Cache-buster: adding timestamp to force Chrome to fetch fresh data
-      final response = await api.get('/user/ads?t=${DateTime.now().millisecondsSinceEpoch}');
+      final response = await context.read<UserRepository>().fetchUserAds();
       
       if (response.data['success'] == true && mounted) {
         final List<dynamic> adsJson = response.data['ads'];
@@ -59,7 +60,7 @@ class _UserAdsScreenState extends State<UserAdsScreen> {
     const yellow = Color(0xFFE2E000);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FA),
+      backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -178,6 +179,7 @@ class _UserAdTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 child: CachedNetworkImage(
                   imageUrl: ad.firstImage,
+                  cacheManager: KlicusCacheManager.instance,
                   width: 70,
                   height: 70,
                   fit: BoxFit.cover,
@@ -215,8 +217,10 @@ class _UserAdTile extends StatelessWidget {
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          Wrap(
+            alignment: WrapAlignment.spaceEvenly,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _buildSmallAction(Icons.analytics_outlined, 'Estadísticas', () {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => AdAnalyticsScreen(ad: ad)));
@@ -224,10 +228,12 @@ class _UserAdTile extends StatelessWidget {
               _buildSmallAction(Icons.edit_outlined, 'Editar', () async {
                 final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => EditAdScreen(ad: ad)));
                 if (result == true) {
-                  // Pequeño retraso para dejar que el server respira
                   Future.delayed(const Duration(milliseconds: 300), () => onRefresh());
                 }
               }),
+              _buildSmallAction(Icons.star_rounded, 'Destacar', () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => UpgradeAdScreen(ad: ad)));
+              }, isPremium: true),
             ],
           ),
         ],
@@ -235,7 +241,26 @@ class _UserAdTile extends StatelessWidget {
     );
   }
 
-  Widget _buildSmallAction(IconData icon, String label, VoidCallback onTap) {
+  Widget _buildSmallAction(IconData icon, String label, VoidCallback onTap, {bool isPremium = false}) {
+    if (isPremium) {
+      return ElevatedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 16, color: navy),
+        label: Text(
+          label.toUpperCase(),
+          style: GoogleFonts.outfit(color: navy, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFE2E000), // Solid Yellow
+          foregroundColor: navy,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          minimumSize: const Size(0, 32),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }
+
     return TextButton.icon(
       onPressed: onTap,
       icon: Icon(icon, size: 18, color: navy),

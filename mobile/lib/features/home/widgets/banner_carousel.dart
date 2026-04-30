@@ -2,8 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../core/services/image_cache_manager.dart';
 import 'package:provider/provider.dart';
 import '../../../core/api_service.dart';
+import '../../../core/repositories/ad_repository.dart';
 
 class BannerCarousel extends StatefulWidget {
   const BannerCarousel({super.key});
@@ -27,8 +29,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
   Future<void> _fetchBanners() async {
     try {
-      final api = context.read<ApiService>();
-      final response = await api.get('/banners');
+      final response = await context.read<AdRepository>().fetchBanners();
       if (response.data['success'] == true) {
         if (mounted) {
           setState(() {
@@ -140,6 +141,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
         // Background Image
         CachedNetworkImage(
           imageUrl: ApiService.normalizeUrl(banner['image_url']),
+          cacheManager: KlicusCacheManager.instance,
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(color: Colors.grey[200]),
           errorWidget: (context, url, error) => Container(color: bannerColor),

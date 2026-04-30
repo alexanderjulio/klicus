@@ -8,7 +8,14 @@ import 'core/nav_provider.dart';
 import 'core/api_service.dart';
 import 'core/services/push_service.dart';
 import 'core/services/analytics_service.dart';
+import 'core/services/connectivity_provider.dart';
+import 'core/services/favorites_provider.dart';
+import 'core/services/stats_provider.dart';
+import 'core/repositories/ad_repository.dart';
+import 'core/repositories/user_repository.dart';
+import 'core/repositories/chat_repository.dart';
 import 'features/auth/auth_provider.dart';
+import 'features/profile/profile_provider.dart';
 import 'features/notifications/notification_provider.dart';
 import 'features/auth/login_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
@@ -29,15 +36,39 @@ void main() async {
     }
   }
 
+  // Build shared singletons first so dependent providers receive the same instance
+  final apiService = ApiService();
+  final statsProvider = StatsProvider(apiService);
+  final profileProvider = ProfileProvider(apiService);
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()..checkAuth()),
+        Provider<ApiService>.value(value: apiService),
+        ChangeNotifierProvider<StatsProvider>.value(value: statsProvider),
+        ChangeNotifierProvider<ProfileProvider>.value(value: profileProvider),
+        ChangeNotifierProvider(
+          create: (_) => AuthProvider(
+            apiService: apiService,
+            statsProvider: statsProvider,
+            profileProvider: profileProvider,
+          )..checkAuth(),
+        ),
         ChangeNotifierProvider(create: (_) => NotificationProvider()..startPolling()),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
-        Provider(create: (_) => ApiService()),
+        ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
+        ChangeNotifierProvider(create: (_) => FavoritesProvider()..load()),
         ProxyProvider<ApiService, AnalyticsService>(
           update: (_, api, __) => AnalyticsService(api),
+        ),
+        ProxyProvider<ApiService, AdRepository>(
+          update: (_, api, __) => AdRepository(api),
+        ),
+        ProxyProvider<ApiService, UserRepository>(
+          update: (_, api, __) => UserRepository(api),
+        ),
+        ProxyProvider<ApiService, ChatRepository>(
+          update: (_, api, __) => ChatRepository(api),
         ),
       ],
       child: const KlicusApp(),
@@ -79,9 +110,9 @@ class KlicusApp extends StatelessWidget {
           secondary: const Color(0xFF0E2244),
           surface: Colors.white,
         ),
-        scaffoldBackgroundColor: const Color(0xFFF4F7FA), // Premium Minimalist Background
+        scaffoldBackgroundColor: const Color(0xFFF8F9FB), // Premium Minimalist Background
         appBarTheme: AppBarTheme(
-          backgroundColor: const Color(0xFFF4F7FA), // Sync AppBar Background
+          backgroundColor: const Color(0xFFF8F9FB), // Sync AppBar Background
           elevation: 0,
           centerTitle: true,
           iconTheme: const IconThemeData(color: Color(0xFF0E2244)),

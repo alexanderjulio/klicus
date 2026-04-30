@@ -163,3 +163,113 @@ Anteriormente la API retornaba `ad_title`, `daily`, `totals` (snake_case y nombr
 ### Componente (`src/components/dashboard/AnalyticsDashboard.js`)
 - `timeSeries` y `devices` con default `= []` para evitar crash si la API retorna `undefined`
 - Estado vacío "Sin datos de dispositivos aún." cuando el array de dispositivos está vacío
+
+---
+
+## 10. Aplicación Móvil (Flutter)
+
+Ubicación: `mobile/`  
+Plataformas: **Android · iOS · Web** desde una única base de código Flutter.
+
+### Arquitectura
+
+Patrón **Provider + Repository**. Cada fuente de datos tiene su propio repositorio; los providers de estado reciben los repositorios vía inyección por constructor, lo que permite tests unitarios sin HTTP real.
+
+```
+ApiService (Dio)
+    └── Repositories          ← thin wrappers sobre ApiService
+          ├── AdRepository
+          ├── AdminRepository
+          ├── ChatRepository
+          └── UserRepository
+    └── Providers             ← estado reactivo (ChangeNotifier)
+          ├── AuthProvider    ← delega stats → StatsProvider, perfil → ProfileProvider
+          ├── StatsProvider
+          ├── ProfileProvider
+          ├── NotificationProvider
+          ├── FavoritesProvider
+          └── ConnectivityProvider
+```
+
+### Fase 1 — Estabilidad
+
+| Mejora | Detalle |
+|--------|---------|
+| `dispose()` en `EditAdScreen` | Cancelaba timer y 13 controllers que quedaban activos |
+| Polling guard en `ChatDetailScreen` | `if (_pollingTimer!.isActive) return` evitaba timers duplicados |
+| `onSessionExpired` callback | `ApiService` llama al callback en 401; `AuthProvider` hace logout limpio sin ciclos |
+| `print()` → `debugPrint()` | Evita logs en release builds |
+
+### Fase 2 — UX
+
+| Mejora | Detalle |
+|--------|---------|
+| `ConnectivityProvider` + `OfflineBanner` | Banner rojo animado en Home y Chat cuando no hay red (`connectivity_plus`) |
+| Validación de formularios | Login y Registro usan `GlobalKey<FormState>` + `TextFormField` con validadores |
+| Auto-guardado de borrador | `EditAdScreen` guarda en `SharedPreferences` cada 3 segundos y restaura al abrir |
+| Cierre de cuenta | `PrivacySecurityScreen` confirma, llama a `UserRepository.deleteAccount()` y hace logout |
+| Preferencias de notificaciones | `NotificationSettingsScreen` carga y persiste preferencias vía `UserRepository` |
+
+### Fase 3 — Performance
+
+| Mejora | Detalle |
+|--------|---------|
+| Paginación en Home | 12 anuncios por página, carga incremental a 300 px del final del scroll |
+| Caché de imágenes | `KlicusCacheManager` (7 días, 200 objetos) via `flutter_cache_manager` |
+| Compresión antes de subir | `flutter_image_compress`: 85 % / 1280 px, fallback 60 % / 960 px |
+| Geocodificación inversa | `geocoding` convierte coordenadas GPS a nombre de lugar legible |
+| FavoritesProvider | `Set<String>` persistido en `SharedPreferences`; corazón superpuesto en cada card |
+
+### Fase 4 — Arquitectura
+
+| Mejora | Detalle |
+|--------|---------|
+| `AuthProvider` refactorizado | Constructor injection de `ApiService`, `StatsProvider`, `ProfileProvider`; zero breaking changes en 11 call sites |
+| Capa de repositorios | `AdRepository`, `AdminRepository`, `ChatRepository`, `UserRepository` |
+| Chat en tiempo real | `ChatWsService` intenta WebSocket primero; si falla, fallback automático a polling 5s |
+| Exponential backoff en notificaciones | `NotificationProvider`: 10s → 20s → 40s … cap 5 min; reset en éxito; pausa en background |
+| Tests unitarios | 33 tests, 0 fallos (auth, favorites, backoff) |
+
+### Pantallas Admin
+
+Accesibles solo con rol admin. Todas usan `AdminRepository` (no `ApiService` directo):
+
+| Pantalla | Función |
+|----------|---------|
+| `AdminAnalyticsScreen` | Dashboard con gráficos de línea y barra (`fl_chart`), selector 7d / 30d |
+| `AdminApprovalScreen` | Cola de anuncios pendientes; aprobar / rechazar con motivo |
+| `AdminMarketingScreen` | CRUD de banners: crear, editar, activar/desactivar, eliminar, subir imagen |
+| `AdminPushScreen` | Envío de notificaciones push: broadcast o usuario específico con buscador |
+
+### Identidad visual
+
+| Token | Valor | Uso |
+|-------|-------|-----|
+| Navy | `#0E2244` | Fondo de AppBar, burbujas propias en chat, botones primarios |
+| Yellow | `#E2E000` | Acentos, badges activos, íconos destacados |
+| Background | `#F4F7FA` | Scaffold de todas las pantallas |
+| Tipografía heading | Outfit (900) | Títulos, labels, botones |
+| Tipografía body | Inter | Contenido de mensajes, descripciones |
+
+### Variables de configuración
+
+Editar `lib/core/api_service.dart`:
+
+```dart
+static String get baseUrl {
+  if (kIsWeb) return 'http://localhost:4000/api';
+  return 'http://192.168.1.5:4000/api'; // IP WiFi para dispositivos reales
+}
+```
+
+### Comandos de build
+
+```bash
+flutter pub get
+flutter test                          # 33 tests unitarios
+flutter run                           # debug en dispositivo/emulador
+flutter build apk --release           # Android APK
+flutter build appbundle --release     # Play Store
+flutter build ios --release           # App Store (requiere Mac)
+flutter build web --release           # Web
+```

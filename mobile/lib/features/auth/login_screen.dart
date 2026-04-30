@@ -13,6 +13,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
@@ -98,24 +99,41 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 40),
 
-                // EMAIL FIELD
-                _buildEliteField(
-                  controller: _emailController,
-                  label: 'CORREO ELECTRÓNICO',
-                  hint: 'tu@email.com',
-                  icon: Icons.alternate_email_rounded,
-                  navy: navy,
-                ),
-                const SizedBox(height: 24),
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      // EMAIL FIELD
+                      _buildEliteField(
+                        controller: _emailController,
+                        label: 'CORREO ELECTRÓNICO',
+                        hint: 'tu@email.com',
+                        icon: Icons.alternate_email_rounded,
+                        navy: navy,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Ingresa tu correo';
+                          if (!v.contains('@') || !v.contains('.')) return 'Correo inválido';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
 
-                // PASSWORD FIELD
-                _buildEliteField(
-                  controller: _passwordController,
-                  label: 'CONTRASEÑA',
-                  hint: '••••••••',
-                  icon: Icons.lock_outline_rounded,
-                  isPassword: true,
-                  navy: navy,
+                      // PASSWORD FIELD
+                      _buildEliteField(
+                        controller: _passwordController,
+                        label: 'CONTRASEÑA',
+                        hint: '••••••••',
+                        icon: Icons.lock_outline_rounded,
+                        isPassword: true,
+                        navy: navy,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Ingresa tu contraseña';
+                          if (v.length < 6) return 'Mínimo 6 caracteres';
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
                 ),
                 
                 // FORGOT PASSWORD
@@ -171,7 +189,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   height: 64,
                   child: ElevatedButton(
                     onPressed: auth.isLoading ? null : () async {
-                      final success = await auth.login(_emailController.text, _passwordController.text);
+                      if (!_formKey.currentState!.validate()) return;
+                      final success = await auth.login(_emailController.text.trim(), _passwordController.text);
                       if (success && mounted) {
                         Navigator.pushReplacementNamed(context, '/home');
                       }
@@ -263,6 +282,7 @@ class _LoginScreenState extends State<LoginScreen> {
     required IconData icon,
     required Color navy,
     bool isPassword = false,
+    String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,9 +309,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
-          child: TextField(
+          child: TextFormField(
             controller: controller,
             obscureText: isPassword,
+            validator: validator,
             style: GoogleFonts.inter(color: navy, fontWeight: FontWeight.w600),
             decoration: InputDecoration(
               hintText: hint,
@@ -300,6 +321,14 @@ class _LoginScreenState extends State<LoginScreen> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide.none,
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Colors.red, width: 1),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Colors.red, width: 1.5),
               ),
               contentPadding: const EdgeInsets.symmetric(vertical: 20),
             ),

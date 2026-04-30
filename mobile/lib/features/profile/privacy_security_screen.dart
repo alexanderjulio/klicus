@@ -2,9 +2,74 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_provider.dart';
+import '../../core/api_service.dart';
+import '../../core/repositories/user_repository.dart';
 
-class PrivacySecurityScreen extends StatelessWidget {
+class PrivacySecurityScreen extends StatefulWidget {
   const PrivacySecurityScreen({super.key});
+
+  @override
+  State<PrivacySecurityScreen> createState() => _PrivacySecurityScreenState();
+}
+
+class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
+  bool _isDeletingAccount = false;
+
+  Future<void> _requestAccountClosure() async {
+    const navy = Color(0xFF0E2244);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Confirmar cierre de cuenta',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: navy),
+        ),
+        content: Text(
+          'Esta acción es irreversible. Se eliminarán todas tus pautas y datos. ¿Estás seguro?',
+          style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[700]),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancelar', style: GoogleFonts.outfit(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('Eliminar cuenta', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isDeletingAccount = true);
+    try {
+      final response = await context.read<UserRepository>().deleteAccount();
+      if (!mounted) return;
+      if (response.statusCode == 200 || response.data['success'] == true) {
+        await context.read<AuthProvider>().logout();
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response.data['error'] ?? 'Error al cerrar cuenta')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error de conexión. Intenta nuevamente.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isDeletingAccount = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,8 +190,14 @@ class PrivacySecurityScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: () {},
-                    child: Text('SOLICITAR CIERRE DE CUENTA', style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.w900, fontSize: 11)),
+                    onPressed: _isDeletingAccount ? null : _requestAccountClosure,
+                    child: _isDeletingAccount
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(color: Colors.red, strokeWidth: 2),
+                          )
+                        : Text('SOLICITAR CIERRE DE CUENTA', style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.w900, fontSize: 11)),
                   ),
                 ],
               ),

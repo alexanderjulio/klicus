@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../../core/api_service.dart';
+import '../../core/repositories/user_repository.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -13,6 +16,30 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   bool _adStatus = true;
   bool _security = true;
   bool _news = false;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    try {
+      final response = await context.read<UserRepository>().getNotificationPreferences();
+      if (response.data['success'] == true && mounted) {
+        final prefs = response.data['preferences'];
+        setState(() {
+          _marketing = prefs['marketing'] ?? true;
+          _adStatus = prefs['ad_status'] ?? true;
+          _security = prefs['security'] ?? true;
+          _news = prefs['news'] ?? false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Load notification prefs error: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,14 +107,39 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Preferencias guardadas correctamente'),
-                      backgroundColor: navy,
-                    ),
-                  );
-                  Navigator.pop(context);
+                onPressed: _isSaving ? null : () async {
+                  setState(() => _isSaving = true);
+                  try {
+                    final response = await context.read<UserRepository>().updateNotificationPreferences({
+                      'marketing': _marketing,
+                      'ad_status': _adStatus,
+                      'security': _security,
+                      'news': _news,
+                    });
+                    if (mounted) {
+                      if (response.data['success'] == true) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Preferencias guardadas correctamente'),
+                            backgroundColor: Color(0xFF0E2244),
+                          ),
+                        );
+                        Navigator.pop(context);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(response.data['error'] ?? 'Error al guardar')),
+                        );
+                      }
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Error de conexión al guardar preferencias')),
+                      );
+                    }
+                  } finally {
+                    if (mounted) setState(() => _isSaving = false);
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: navy,
@@ -95,7 +147,13 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
-                child: Text('GUARDAR PREFERENCIAS', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : Text('GUARDAR PREFERENCIAS', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
               ),
             ),
              const SizedBox(height: 40),

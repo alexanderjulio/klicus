@@ -10,6 +10,7 @@ import '../admin/admin_analytics_screen.dart';
 import 'privacy_security_screen.dart';
 import 'notification_settings_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../core/services/image_cache_manager.dart';
 import 'dart:ui';
 import '../../core/api_service.dart';
 
@@ -78,7 +79,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     const yellow = Color(0xFFE2E000);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FA),
+      backgroundColor: const Color(0xFFF8F9FB),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -120,7 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: navy,
                             borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
                             image: user?['banner_url'] != null ? DecorationImage(
-                              image: CachedNetworkImageProvider(user!['banner_url']),
+                              image: CachedNetworkImageProvider(user!['banner_url'], cacheManager: KlicusCacheManager.instance),
                               fit: BoxFit.cover,
                             ) : null,
                           ),
@@ -137,7 +138,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: CircleAvatar(
                               radius: 45,
                               backgroundColor: yellow,
-                              backgroundImage: user?['avatar_url'] != null ? CachedNetworkImageProvider(ApiService.normalizeUrl(user!['avatar_url'])) : null,
+                              backgroundImage: user?['avatar_url'] != null ? CachedNetworkImageProvider(ApiService.normalizeUrl(user!['avatar_url']), cacheManager: KlicusCacheManager.instance) : null,
                               child: user?['avatar_url'] == null ? const Icon(Icons.business_center_rounded, color: navy, size: 30) : null,
                             ),
                           ),
@@ -189,7 +190,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
 
                           const SizedBox(height: 24),
-                          const Divider(color: Color(0xFFF4F7FA)),
+                          const Divider(color: Color(0xFFF8F9FB)),
                           const SizedBox(height: 20),
 
                           Row(

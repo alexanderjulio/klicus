@@ -7,7 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class ApiService {
   static String get baseUrl {
     if (kIsWeb) return 'http://localhost:4000/api';
-    return 'http://192.168.1.8:4000/api'; // WiFi IP for Real Devices
+    return 'http://192.168.1.5:4000/api'; // WiFi IP for Real Devices
   }
 
   static String normalizeUrl(String? path) {
@@ -34,6 +34,10 @@ class ApiService {
   ));
 
   final _storage = const FlutterSecureStorage();
+
+  /// Called when the server returns 401. Wire up in AuthProvider.checkAuth()
+  /// to trigger a clean logout + UI navigation.
+  void Function()? onSessionExpired;
 
   ApiService() {
     _dio.interceptors.add(InterceptorsWrapper(
@@ -64,13 +68,14 @@ class ApiService {
            // For now, this provides a much more stable user experience.
         }
 
-        print('API Error: ${e.response?.statusCode} - ${e.message}');
-        
-        // Global 401 Handling: Logout if token is rejected by server
+        debugPrint('API Error: ${e.response?.statusCode} - ${e.message}');
+
+        // Global 401 Handling: notify AuthProvider to do a clean logout
         if (e.response?.statusCode == 401) {
           await _storage.delete(key: 'auth_token');
           await _storage.delete(key: 'user_data');
           debugPrint('Session invalidated globally due to 401 error.');
+          onSessionExpired?.call();
         }
         
         return handler.next(e);
