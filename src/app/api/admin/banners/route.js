@@ -3,6 +3,15 @@ import { query } from '@/lib/db';
 import { getAuthenticatedUser } from '@/lib/auth-util';
 import { NextResponse } from 'next/server';
 
+/** Adds `type` column to banners — works on MySQL 5.7+ and 8.0+ */
+async function ensureTypeColumn() {
+  try {
+    await query("ALTER TABLE banners ADD COLUMN type VARCHAR(20) NOT NULL DEFAULT 'carousel'");
+  } catch (e) {
+    if (e.errno !== 1060) throw e; // 1060 = Duplicate column name (already exists)
+  }
+}
+
 /**
  * Admin API to manage promotional banners
  */
@@ -39,7 +48,7 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Imagen es requerida' }, { status: 400 });
     }
 
-    await query("ALTER TABLE banners ADD COLUMN IF NOT EXISTS type VARCHAR(20) NOT NULL DEFAULT 'carousel'").catch(() => {});
+    await ensureTypeColumn();
 
     const result = await query(
       'INSERT INTO banners (title, subtitle, image_url, cta_text, cta_link, is_active, type) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -65,7 +74,7 @@ export async function PUT(req) {
 
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
-    await query("ALTER TABLE banners ADD COLUMN IF NOT EXISTS type VARCHAR(20) NOT NULL DEFAULT 'carousel'").catch(() => {});
+    await ensureTypeColumn();
 
     // Build dynamic UPDATE — avoids COALESCE treating boolean false as NULL
     const updates = [];

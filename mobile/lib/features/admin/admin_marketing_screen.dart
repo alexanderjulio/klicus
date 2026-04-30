@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -552,7 +553,15 @@ class _InterstitialFormState extends State<_InterstitialForm> {
     } catch (e) {
       debugPrint('Save interstitial error: $e');
       if (!mounted) return;
-      setState(() => _errorMessage = 'Error al guardar. Verifica tu conexión e intenta de nuevo.');
+      String msg;
+      if (e is DioException) {
+        final status = e.response?.statusCode ?? 0;
+        final apiMsg = e.response?.data?['error'] ?? e.response?.data?['message'] ?? '';
+        msg = 'Error $status${apiMsg.isNotEmpty ? ': $apiMsg' : ' — ${e.message}'}';
+      } else {
+        msg = 'Error: $e';
+      }
+      setState(() => _errorMessage = msg);
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
