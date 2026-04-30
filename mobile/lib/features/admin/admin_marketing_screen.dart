@@ -82,15 +82,20 @@ class _AdminMarketingScreenState extends State<AdminMarketingScreen> {
   }
 
   void _showInterstitialForm({Map<String, dynamic>? interstitial}) {
+    final messenger = ScaffoldMessenger.of(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _InterstitialForm(
+      builder: (sheetContext) => _InterstitialForm(
         interstitial: interstitial,
         onSave: () {
-          Navigator.pop(context);
+          Navigator.pop(sheetContext);
           _fetchBanners();
+          messenger.showSnackBar(const SnackBar(
+            content: Text('Intersticial guardado con éxito'),
+            backgroundColor: Colors.green,
+          ));
         },
       ),
     );
@@ -463,6 +468,8 @@ class _InterstitialFormState extends State<_InterstitialForm> {
   bool _isUploading = false;
   String _imageUrl = '';
   Uint8List? _selectedBytes;
+  String _uploadStatus = '';  // '' | 'uploading' | 'ok' | 'error'
+  String _errorMessage = '';
 
   @override
   void initState() {
@@ -471,6 +478,7 @@ class _InterstitialFormState extends State<_InterstitialForm> {
       _imageUrl = widget.interstitial!['image_url'] ?? '';
       _ctaLinkController.text = widget.interstitial!['cta_link'] ?? '';
       _isActive = widget.interstitial!['is_active'] == 1 || widget.interstitial!['is_active'] == true;
+      if (_imageUrl.isNotEmpty) _uploadStatus = 'ok';
     }
   }
 
@@ -487,49 +495,52 @@ class _InterstitialFormState extends State<_InterstitialForm> {
     final bytes = await image.readAsBytes();
     setState(() {
       _selectedBytes = bytes;
-      _isUploading = true;
+      _imageUrl = '';
+      _uploadStatus = 'uploading';
+      _errorMessage = '';
     });
 
     try {
       final res = await _apiService.uploadFile('/admin/upload', image, extraData: {'type': 'marketing'});
-      if (res.data['success']) {
-        setState(() => _imageUrl = res.data['url']);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Imagen subida con éxito'), backgroundColor: Colors.green),
-        );
+      if (!mounted) return;
+      if (res.data['success'] == true) {
+        setState(() {
+          _imageUrl = res.data['url'] ?? '';
+          _uploadStatus = _imageUrl.isNotEmpty ? 'ok' : 'error';
+        });
+      } else {
+        setState(() => _uploadStatus = 'error');
       }
     } catch (e) {
       debugPrint('Upload error: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al subir imagen'), backgroundColor: Colors.redAccent),
-      );
+      setState(() => _uploadStatus = 'error');
     } finally {
-      setState(() => _isUploading = false);
+      if (mounted) setState(() => _isUploading = false);
     }
   }
 
   Future<void> _save() async {
-    if (_imageUrl.isEmpty && _selectedBytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecciona una imagen primero'), backgroundColor: Colors.orange),
-      );
+    setState(() => _errorMessage = '');
+
+    if (_imageUrl.isEmpty) {
+      setState(() => _errorMessage = _uploadStatus == 'error'
+          ? 'La imagen no se subió correctamente. Toca la imagen para reintentar.'
+          : 'Selecciona y sube una imagen antes de guardar.');
       return;
     }
 
     setState(() => _isSaving = true);
-    final messenger = ScaffoldMessenger.of(context);
     try {
       if (widget.interstitial != null) {
-        await _apiService.put('/admin/banners', data: {
+        await _apiService.put('/admin/banners', data: <String, dynamic>{
           'id': widget.interstitial!['id'],
           'image_url': _imageUrl,
           'cta_link': _ctaLinkController.text.trim(),
           'is_active': _isActive,
         });
       } else {
-        await _apiService.post('/admin/banners', data: {
+        await _apiService.post('/admin/banners', data: <String, dynamic>{
           'title': '',
           'image_url': _imageUrl,
           'cta_link': _ctaLinkController.text.trim(),
@@ -540,11 +551,10 @@ class _InterstitialFormState extends State<_InterstitialForm> {
       widget.onSave();
     } catch (e) {
       debugPrint('Save interstitial error: $e');
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Error al guardar'), backgroundColor: Colors.redAccent),
-      );
+      if (!mounted) return;
+      setState(() => _errorMessage = 'Error al guardar. Verifica tu conexión e intenta de nuevo.');
     } finally {
-      setState(() => _isSaving = false);
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -589,7 +599,14 @@ class _InterstitialFormState extends State<_InterstitialForm> {
                 decoration: BoxDecoration(
                   color: Colors.grey[50],
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey[200]!, width: 2),
+                  border: Border.all(
+                    color: _uploadStatus == 'error'
+                        ? Colors.redAccent
+                        : _uploadStatus == 'ok'
+                            ? Colors.green
+                            : Colors.grey[200]!,
+                    width: 2,
+                  ),
                 ),
                 child: _selectedBytes != null
                     ? ClipRRect(
@@ -598,10 +615,44 @@ class _InterstitialFormState extends State<_InterstitialForm> {
                           fit: StackFit.expand,
                           children: [
                             Image.memory(_selectedBytes!, fit: BoxFit.contain),
-                            if (_isUploading)
+                            if (_uploadStatus == 'uploading')
+                              Container(
+                                color: Colors.black54,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const CircularProgressIndicator(color: Colors.white),
+                                    const SizedBox(height: 12),
+                                    Text('Subiendo imagen...', style: GoogleFonts.outfit(color: Colors.white, fontSize: 13)),
+                                  ],
+                                ),
+                              ),
+                            if (_uploadStatus == 'ok')
+                              Positioned(
+                                bottom: 8, right: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(20)),
+                                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                                    Icon(Icons.check_circle, color: Colors.white, size: 14),
+                                    SizedBox(width: 4),
+                                    Text('Lista', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  ]),
+                                ),
+                              ),
+                            if (_uploadStatus == 'error')
                               Container(
                                 color: Colors.black45,
-                                child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.error_outline, color: Colors.redAccent, size: 36),
+                                    const SizedBox(height: 8),
+                                    Text('Error al subir — toca para reintentar',
+                                        style: GoogleFonts.inter(color: Colors.white, fontSize: 11),
+                                        textAlign: TextAlign.center),
+                                  ],
+                                ),
                               ),
                           ],
                         ),
@@ -620,14 +671,10 @@ class _InterstitialFormState extends State<_InterstitialForm> {
                             children: [
                               Icon(Icons.fullscreen_rounded, size: 48, color: navy.withOpacity(0.2)),
                               const SizedBox(height: 12),
-                              Text(
-                                'SUBIR IMAGEN',
-                                style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, color: navy.withOpacity(0.4)),
-                              ),
-                              Text(
-                                'Se mostrará a pantalla completa en el móvil',
-                                style: GoogleFonts.inter(fontSize: 10, color: Colors.grey),
-                              ),
+                              Text('SUBIR IMAGEN',
+                                  style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, color: navy.withOpacity(0.4))),
+                              Text('Se mostrará a pantalla completa en el móvil',
+                                  style: GoogleFonts.inter(fontSize: 10, color: Colors.grey)),
                             ],
                           ),
               ),
@@ -660,21 +707,42 @@ class _InterstitialFormState extends State<_InterstitialForm> {
             ),
             const SizedBox(height: 32),
 
+            // Error inline — visible dentro del modal
+            if (_errorMessage.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.redAccent.withOpacity(0.4)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(_errorMessage,
+                        style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 12))),
+                  ],
+                ),
+              ),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isSaving || _isUploading ? null : _save,
+                onPressed: _isSaving || _uploadStatus == 'uploading' ? null : _save,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: navy,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 child: _isSaving
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(
-                        'GUARDAR',
-                        style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: Colors.white),
-                      ),
+                    ? const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
+                        SizedBox(width: 12),
+                        Text('Guardando...', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ])
+                    : Text('GUARDAR', style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: Colors.white)),
               ),
             ),
           ],
