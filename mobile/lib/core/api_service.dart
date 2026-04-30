@@ -136,7 +136,7 @@ class ApiService {
       await _dio.post('/user/guest-data', data: {'guestId': id, 'name': name});
       debugPrint('Guest identity synced: ID=$id, Name=$name');
     } catch (e) {
-      print('Guest sync error: $e');
+      debugPrint('Guest sync error: $e');
     }
   }
 

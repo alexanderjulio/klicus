@@ -77,8 +77,8 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
     final analyticsRef = context.read<AnalyticsService>();
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-    final navy = const Color(0xFF0E2244);
-    final yellow = const Color(0xFFE2E000);
+    const navy = Color(0xFF0E2244);
+    const yellow = Color(0xFFE2E000);
 
     debugPrint('Iniciando Chat - Autenticado: ${auth.isAuthenticated}');
 
@@ -233,8 +233,8 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
     final isOwner = auth.isAuthenticated && widget.ad.ownerId == auth.currentUser?['id'].toString();
-    final navy = const Color(0xFF0E2244);
-    final yellow = const Color(0xFFE2E000);
+    const navy = Color(0xFF0E2244);
+    const yellow = Color(0xFFE2E000);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
@@ -249,7 +249,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
               padding: const EdgeInsets.all(8.0),
               child: CircleAvatar(
                 backgroundColor: Colors.white.withOpacity(0.9),
-                child: BackButton(color: navy),
+                child: const BackButton(color: Color(0xFF0E2244)),
               ),
             ),
             flexibleSpace: FlexibleSpaceBar(
@@ -344,7 +344,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                   child: CircleAvatar(
                     backgroundColor: const Color(0xFFE2E000),
                     child: IconButton(
-                      icon: Icon(Icons.star_rounded, color: navy),
+                      icon: const Icon(Icons.star_rounded, color: Color(0xFF0E2244)),
                       onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => UpgradeAdScreen(ad: widget.ad))),
                     ),
                   ),
@@ -354,7 +354,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                   child: CircleAvatar(
                     backgroundColor: yellow,
                     child: IconButton(
-                      icon: Icon(Icons.edit, color: navy),
+                      icon: const Icon(Icons.edit, color: Color(0xFF0E2244)),
                       onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EditAdScreen(ad: widget.ad))),
                     ),
                   ),
@@ -395,7 +395,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                             const SizedBox(width: 6),
                             Text(
                               widget.ad.priorityLevel == 'diamond' ? 'ANUNCIO ELITE' : 'ANUNCIO PRO', 
-                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: navy, letterSpacing: 1)
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF0E2244), letterSpacing: 1)
                             ),
                           ],
                         ),
@@ -449,7 +449,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Icon(Icons.location_on, size: 16, color: yellow),
+                        const Icon(Icons.location_on, size: 16, color: Color(0xFFE2E000)),
                         const SizedBox(width: 6),
                         Expanded(
                           child: RichText(
@@ -468,14 +468,14 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                                     !widget.ad.location.contains(','))
                                   TextSpan(
                                     text: widget.ad.title.toLowerCase().contains('aguas') ? 'Aguachica • ' : 'Ocaña • ',
-                                    style: TextStyle(color: navy, fontWeight: FontWeight.w900),
+                                    style: const TextStyle(color: Color(0xFF0E2244), fontWeight: FontWeight.w900),
                                   ),
                                 TextSpan(
                                   text: widget.ad.location,
-                                  style: (!widget.ad.location.contains(',') && 
-                                          (widget.ad.location.toLowerCase().contains('ocaña') || 
+                                  style: (!widget.ad.location.contains(',') &&
+                                          (widget.ad.location.toLowerCase().contains('ocaña') ||
                                            widget.ad.location.toLowerCase().contains('aguachica')))
-                                      ? TextStyle(color: navy, fontWeight: FontWeight.w900)
+                                      ? const TextStyle(color: Color(0xFF0E2244), fontWeight: FontWeight.w900)
                                       : null,
                                 ),
                                 if (widget.ad.address != null && widget.ad.address!.isNotEmpty && widget.ad.address != widget.ad.location)

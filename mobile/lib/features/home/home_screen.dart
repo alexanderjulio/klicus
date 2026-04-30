@@ -19,7 +19,6 @@ import 'widgets/banner_carousel.dart';
 import '../auth/auth_provider.dart';
 import '../notifications/notification_screen.dart';
 import '../notifications/notification_provider.dart';
-import 'package:flutter/rendering.dart';
 import '../../core/repositories/admin_repository.dart';
 import 'interstitial_screen.dart';
 
@@ -876,12 +875,12 @@ class _AdCard extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(color: const Color(0xFFFFD700).withOpacity(0.6), width: 1), // Metallic border
                                 ),
-                                child: Row(
+                                child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.diamond_outlined, color: Color(0xFF0E2244), size: 10),
-                                    const SizedBox(width: 4),
-                                    const Text('ELITE', 
+                                    Icon(Icons.diamond_outlined, color: Color(0xFF0E2244), size: 10),
+                                    SizedBox(width: 4),
+                                    Text('ELITE',
                                       style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF0E2244), letterSpacing: 0.5)),
                                   ],
                                 ),
@@ -904,12 +903,12 @@ class _AdCard extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(color: Colors.white.withOpacity(0.2), width: 1), // Light border
                                 ),
-                                child: Row(
+                                child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.star_rounded, color: Colors.white, size: 10),
-                                    const SizedBox(width: 4),
-                                    const Text('PRO', 
+                                    Icon(Icons.star_rounded, color: Colors.white, size: 10),
+                                    SizedBox(width: 4),
+                                    Text('PRO',
                                       style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
                                   ],
                                 ),

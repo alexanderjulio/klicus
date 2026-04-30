@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../nav_provider.dart';
@@ -35,7 +34,7 @@ class MainNavigation extends StatelessWidget {
   }
 
   Widget _buildGlassNavigationBar(BuildContext context, NavigationProvider nav) {
-    final navy = const Color(0xFF0E2244);
+    const navy = Color(0xFF0E2244);
 
     return Container(
       decoration: BoxDecoration(
@@ -70,7 +69,7 @@ class MainNavigation extends StatelessWidget {
   Widget _buildNavItem(BuildContext context, int index, IconData outlineIcon, IconData solidIcon, String label, {bool hasBadge = false}) {
     final nav = Provider.of<NavigationProvider>(context);
     final isSelected = nav.currentIndex == index;
-    final yellow = const Color(0xFFE2E000);
+    const yellow = Color(0xFFE2E000);
     
     return GestureDetector(
       onTap: () => nav.setIndex(index),
