@@ -10,7 +10,6 @@ import 'privacy_security_screen.dart';
 import 'notification_settings_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/services/image_cache_manager.dart';
-import 'dart:ui';
 import '../../core/api_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -175,7 +174,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           
-                          if (user?['bio'] != null && user['bio'].toString().isNotEmpty) ...[
+                          if (user?['bio'] != null && user!['bio'].toString().isNotEmpty) ...[
                             const SizedBox(height: 16),
                             Text(
                               user['bio'],

@@ -644,38 +644,43 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-           _buildActionItem(Icons.phone_in_talk_rounded, 'Llamar', () {
-            if (widget.ad.cellphone != null) _launchUrl('tel:${widget.ad.cellphone}', 'call');
-          }),
-          _isStartingChat 
+          _buildActionItem(Icons.phone_in_talk_rounded, 'Llamar',
+            enabled: widget.ad.cellphone != null,
+            onTap: () => _launchUrl('tel:${widget.ad.cellphone}', 'call'),
+          ),
+          _isStartingChat
             ? SizedBox(width: 50, height: 50, child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: navy)))
-            : _buildActionItem(Icons.chat_bubble_rounded, 'Chat', () => _startChat(context)),
-          _buildActionItem(Icons.public_rounded, 'Web', () {
-             if (widget.ad.websiteUrl != null) _launchUrl(widget.ad.websiteUrl!, 'web');
-          }),
-          _buildActionItem(Icons.share_rounded, 'Compartir', () => _shareAd()),
+            : _buildActionItem(Icons.chat_bubble_rounded, 'Chat', onTap: () => _startChat(context)),
+          _buildActionItem(Icons.public_rounded, 'Web',
+            enabled: widget.ad.websiteUrl != null,
+            onTap: () => _launchUrl(widget.ad.websiteUrl!, 'web'),
+          ),
+          _buildActionItem(Icons.share_rounded, 'Compartir', onTap: () => _shareAd()),
         ],
       ),
     );
   }
 
-  Widget _buildActionItem(IconData icon, String label, VoidCallback onTap) {
+  Widget _buildActionItem(IconData icon, String label, {required VoidCallback onTap, bool enabled = true}) {
     return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8F9FB),
-              shape: BoxShape.circle,
+      onTap: enabled ? onTap : null,
+      child: Opacity(
+        opacity: enabled ? 1.0 : 0.35,
+        child: Column(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8F9FB),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: const Color(0xFF0E2244), size: 20),
             ),
-            child: Icon(icon, color: const Color(0xFF0E2244), size: 20),
-          ),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-        ],
+            const SizedBox(height: 8),
+            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+          ],
+        ),
       ),
     );
   }
