@@ -57,7 +57,7 @@ lib/
 │   ├── admin/
 │   │   ├── admin_analytics_screen.dart   # Dashboard con gráficos fl_chart
 │   │   ├── admin_approval_screen.dart    # Cola de aprobación de anuncios
-│   │   ├── admin_marketing_screen.dart   # CRUD de banners promocionales
+│   │   ├── admin_marketing_screen.dart   # CRUD banners carrusel + pantalla intersticial
 │   │   └── admin_push_screen.dart        # Envío de notificaciones push
 │   ├── auth/
 │   │   ├── auth_provider.dart    # Estado de sesión (inyección por constructor)
@@ -67,13 +67,18 @@ lib/
 │   │   ├── chat_detail_screen.dart  # Mensajería con WS + optimistic updates
 │   │   └── chat_list_screen.dart
 │   ├── home/
-│   │   ├── home_screen.dart     # Feed paginado con favoritos
+│   │   ├── home_screen.dart         # Feed paginado con favoritos + lógica intersticial
+│   │   ├── interstitial_screen.dart # Pantalla completa con imagen + CTA + botón cerrar
 │   │   ├── ad_detail_screen.dart
-│   │   └── create_ad_screen.dart
+│   │   ├── create_ad_screen.dart
+│   │   └── widgets/
+│   │       └── banner_carousel.dart # Carrusel de banners promocionales
 │   ├── notifications/
 │   │   └── notification_provider.dart  # Polling con exponential backoff
 │   ├── onboarding/
 │   │   └── onboarding_screen.dart
+│   ├── splash/
+│   │   └── splash_screen.dart       # Logo 3s sobre fondo amarillo #E2E000
 │   └── profile/
 │       ├── profile_screen.dart
 │       ├── edit_ad_screen.dart         # Auto-guardado de borrador cada 3s
@@ -133,6 +138,22 @@ lib/
 - Reinicio del intervalo al reanudar la app (`WidgetsBindingObserver`)
 - Pausa automática al minimizar
 
+### Splash screen
+- Fondo `#E2E000`, logo `assets/splash_padded.png` centrado, duración 3 segundos
+- Ruta inicial `/splash` → navega al Home al completarse
+
+### Pantalla intersticial
+Aparece al abrir la app si hay un intersticial activo en el servidor.
+
+**Flujo sin parpadeo:**
+1. Home invisible (`AnimatedOpacity opacity:0`) mientras se verifica
+2. `precacheImage()` carga la imagen antes de pushear la ruta
+3. `Navigator.push` con `opaque: false` (overlay sobre el home)
+4. Anuncios se cargan en paralelo durante la visualización del intersticial
+5. Al cerrar: `_interstitialChecked = true` → home hace fade-in 200 ms con anuncios ya cargados
+
+**Display:** `BoxFit.fitWidth` — llena el ancho de pantalla escalando el alto proporcionalmente.
+
 ### Pantallas admin
 Accesibles solo si el usuario tiene rol admin:
 
@@ -140,8 +161,16 @@ Accesibles solo si el usuario tiene rol admin:
 |----------|--------------------|
 | Analytics | `GET /admin/stats` |
 | Cola de aprobación | `GET /admin/stats` + `POST /admin/approve-ad` |
-| Marketing / Banners | CRUD `/admin/banners` |
+| Marketing / Banners | CRUD `/admin/banners` — carrusel e intersticial |
 | Centro Push | `POST /admin/broadcast` |
+
+**AdminMarketingScreen** gestiona dos tipos:
+- **Pantalla intersticial**: imagen a pantalla completa con CTA opcional. Solo una activa.  Tamaño recomendado: 1080 × 1920 px.
+- **Banners de carrusel**: deslizables en el Home. Tamaño recomendado: 1200 × 450 px.
+
+Los cambios se reflejan **en caliente** al cambiar de tab vía `NavigationProvider` + `ValueKey(_bannerRefreshKey)`.
+
+Hot-reload de banners: listener en `NavigationProvider` detecta regreso al tab Home e incrementa `_bannerRefreshKey`, forzando re-fetch del `BannerCarousel`.
 
 ### Perfil y cuenta
 - Edición de anuncios con auto-guardado de borrador cada 3 segundos (`SharedPreferences`)
@@ -228,3 +257,4 @@ flutter pub run flutter_native_splash:create
 | `firebase_core` + `firebase_messaging` | Push notifications |
 | `fl_chart` | Gráficos de analíticas admin |
 | `google_fonts` | Tipografía (Inter + Outfit) |
+| `url_launcher` | Abrir enlaces externos desde el intersticial |

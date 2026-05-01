@@ -273,3 +273,111 @@ flutter build appbundle --release     # Play Store
 flutter build ios --release           # App Store (requiere Mac)
 flutter build web --release           # Web
 ```
+
+---
+
+## 11. Sistema de Marketing (Banners e Intersticial)
+
+### Estructura de datos
+
+La tabla `banners` unifica banners de carrusel y pantalla intersticial mediante el campo `type`:
+
+| `type` | Uso |
+|--------|-----|
+| `carousel` (o NULL) | Banner deslizable en el Home |
+| `interstitial` | Pantalla completa al abrir la app |
+
+Solo puede haber **un intersticial activo** a la vez. La API pública (`GET /api/banners`) filtra por `type = 'carousel' OR type IS NULL` para no mezclar tipos.
+
+### APIs
+
+| Endpoint | Método | Descripción |
+|----------|--------|-------------|
+| `GET /api/banners` | público | Banners del carrusel (excluye interstitial) |
+| `GET /api/interstitial` | público | Intersticial activo (image_url, cta_link) |
+| `GET /api/admin/banners` | admin | Lista todos (carousel + interstitial) |
+| `POST /api/admin/banners` | admin | Crear banner/intersticial |
+| `PUT /api/admin/banners` | admin | Editar (constructor dinámico, evita COALESCE con booleanos) |
+| `DELETE /api/admin/banners` | admin | Eliminar por id |
+| `POST /api/admin/upload` | admin | Subir imagen (type: `marketing`, `interstitial`, `ad`) |
+
+### Procesamiento de imágenes (`src/lib/image-service.js`)
+
+```
+sharp.concurrency(1)  ← evita error "glib: Error creating thread" en CloudLinux
+```
+
+| Función | Dimensiones | `fit` | Uso |
+|---------|-------------|-------|-----|
+| `processMarketingImage` | 1200 × 600 | `cover` | Banners de carrusel |
+| `processInterstitialImage` | 1080 × 1920 max | `inside` | Pantalla intersticial (preserva aspect ratio) |
+| `processAdImage` | 1200 × 800 max | `inside` | Imágenes de anuncios |
+| `processQRImage` | 600 × 600 max | `inside` | Códigos QR |
+
+> **Tamaños recomendados para subir:**
+> - Carrusel: **1200 × 450 px** (landscape, ratio 8:3)
+> - Intersticial: **1080 × 1920 px** (portrait, ratio 9:16)
+
+### AdminMarketingScreen (Flutter)
+
+- Sección **PANTALLA INTERSTICIAL**: vista previa, toggle activo/inactivo, editar, eliminar
+- Sección **BANNERS DE CARRUSEL**: lista con toggle, editar, eliminar, agregar nuevo
+- Los cambios se aplican **en caliente**: al regresar al tab Home se refrescan banners y se re-verifica el intersticial via `NavigationProvider` listener + `ValueKey(_bannerRefreshKey)`
+- El formulario muestra errores inline (no snackbars) mientras el modal está abierto; el snackbar de éxito se muestra desde el contexto padre tras cerrar el modal
+
+### Flujo de la pantalla intersticial (Flutter Home)
+
+```
+initState → _fetchInitialData()
+  ├── _fetchCategories()          ← sin await, fija estado local
+  ├── _fetchAds()                 ← inicia en paralelo (carga mientras se muestra el intersticial)
+  └── _checkInterstitial()
+        ├── GET /api/interstitial
+        ├── precacheImage()       ← imagen en caché antes de mostrar (sin spinner)
+        ├── Navigator.push(InterstitialScreen, opaque: false)
+        └── finally → setState(_interstitialChecked = true)
+```
+
+- Mientras `_interstitialChecked = false`, el home es invisible (`AnimatedOpacity(opacity: 0)`)
+- Al cerrar el intersticial, el home aparece con **fade suave de 200 ms** y los anuncios ya están cargados (parallel fetch)
+- `InterstitialScreen` usa `BoxFit.fitWidth`: llena el ancho de pantalla escalando el alto proporcionalmente (sin zoom excesivo)
+
+### Bugs corregidos en esta fase
+
+| Bug | Causa | Fix |
+|-----|-------|-----|
+| Toggle activo/inactivo no funcionaba | `COALESCE` con `false` de JS se interpreta como NULL | Constructor dinámico de UPDATE + `is_active ? 1 : 0` explícito |
+| INSERT de banner fallaba | `subtitle`/`cta_text`/`cta_link` llegaban como `undefined` a los bind params | `?? null` en los tres campos opcionales |
+| `ERR_SERVER_NOT_RUNNING` en producción | `ensureTypeColumn()` hacía ALTER TABLE en **cada request** disparando nproc limit | Función eliminada (migración ya aplicada) |
+| `ad_id cannot be null` en métricas | Eventos globales (install/session) no tienen ad_id pero columna era NOT NULL | Early return en `/api/metrics/track` para eventos globales sin adId |
+| Intersticial aparecía en el carrusel | `/api/banners` devolvía todos los tipos | Filtro `AND (type = 'carousel' OR type IS NULL)` |
+| Zoom excesivo en el intersticial | Imagen procesada a 1200×600 landscape, mostrada con `BoxFit.cover` en pantalla portrait | `processInterstitialImage` con `fit: inside` + `BoxFit.fitWidth` en display |
+| Parpadeo al abrir la app | Home reconstruía con shimmer antes de que apareciera el intersticial | `AnimatedOpacity` + precaching + carga paralela de anuncios |
+| Error de hilos en CloudLinux (sharp) | libvips detecta N CPUs y crea N hilos, excediendo nproc | `sharp.concurrency(1)` al inicio de `image-service.js` |
+
+---
+
+## 12. Splash Screen
+
+- Archivo: `mobile/lib/features/splash/splash_screen.dart`
+- Fondo amarillo `#E2E000`, logo centrado (`assets/splash_padded.png`, 260 px de ancho)
+- Duración: **3 segundos** → `Future.delayed(Duration(seconds: 3), _navigate)`
+- Ruta inicial: `/splash` en `main.dart`
+- Asset declarado en `pubspec.yaml` bajo `flutter: assets: - assets/`
+
+### Deploy a producción (cPanel / Passenger)
+
+```bash
+# 1. Build Next.js standalone
+npm run build
+
+# 2. Empaquetar
+rm -rf deploy_package/app
+cp -r .next/standalone deploy_package/app
+cp -r .next/static deploy_package/app/.next/static
+cp -r public/. deploy_package/app/public/
+Compress-Archive -Path deploy_package/app -DestinationPath klicus_cpanel_deploy.zip -Force
+
+# 3. Subir klicus_cpanel_deploy.zip a cPanel → Administrador de archivos → extraer
+# 4. Reiniciar Node.js app en cPanel → Setup Node.js App → Restart
+```

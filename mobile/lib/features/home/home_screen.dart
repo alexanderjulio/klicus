@@ -58,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? _searchDebounce;
   int _bannerRefreshKey = 0;
   NavigationProvider? _navProvider;
+  bool _interstitialChecked = false;
 
   @override
   void initState() {
@@ -191,9 +192,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchInitialData() async {
-    _fetchCategories(); // sin await — solo fija estado local
-    await _checkInterstitial(); // intersticial primero, home sigue en loading
-    await _fetchAds(); // luego carga anuncios visible
+    _fetchCategories();
+    final adsFuture = _fetchAds(); // inicia en paralelo (carga durante intersticial)
+    await _checkInterstitial();
+    await adsFuture; // espera si aún no terminó
   }
 
   Future<void> _checkInterstitial() async {
@@ -204,6 +206,15 @@ class _HomeScreenState extends State<HomeScreen> {
       final data = response.data['data'];
       final imageUrl = data?['image_url'];
       if (data != null && imageUrl != null && imageUrl.toString().isNotEmpty) {
+        // Precache image so interstitial appears instantly without spinner
+        await precacheImage(
+          CachedNetworkImageProvider(
+            ApiService.normalizeUrl(imageUrl.toString()),
+            cacheManager: KlicusCacheManager.instance,
+          ),
+          context,
+        );
+        if (!mounted) return;
         await Navigator.of(context).push(PageRouteBuilder(
           opaque: false,
           barrierDismissible: false,
@@ -213,11 +224,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           transitionsBuilder: (_, animation, __, child) =>
               FadeTransition(opacity: animation, child: child),
-          transitionDuration: const Duration(milliseconds: 400),
+          transitionDuration: const Duration(milliseconds: 300),
         ));
       }
     } catch (_) {
       // Fallo silencioso — el intersticial es opcional
+    } finally {
+      if (mounted) setState(() => _interstitialChecked = true);
     }
   }
 
@@ -643,21 +656,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final Widget mainContent = kIsWeb ? scrollView : AnimationLimiter(child: scrollView);
 
-    return Scaffold(
-      body: Column(
-        children: [
-          const OfflineBanner(),
-          Expanded(
-            child: kIsWeb
-                ? mainContent
-                : RefreshIndicator(
-                    key: _refreshIndicatorKey,
-                    onRefresh: _fetchAds,
-                    color: const Color(0xFF0E2244),
-                    child: mainContent,
-                  ),
-          ),
-        ],
+    return AnimatedOpacity(
+      opacity: _interstitialChecked ? 1.0 : 0.0,
+      duration: const Duration(milliseconds: 200),
+      child: Scaffold(
+        body: Column(
+          children: [
+            const OfflineBanner(),
+            Expanded(
+              child: kIsWeb
+                  ? mainContent
+                  : RefreshIndicator(
+                      key: _refreshIndicatorKey,
+                      onRefresh: _fetchAds,
+                      color: const Color(0xFF0E2244),
+                      child: mainContent,
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
